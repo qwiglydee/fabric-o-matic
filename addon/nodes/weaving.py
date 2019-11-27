@@ -1055,24 +1055,24 @@ class FMWeavingJacquard(ShaderNodeBase):
             'ShaderNodeTexImage',
             name='tex_l',
             interpolation='Closest',
-            inputs={'Vector': self.add_vec((sampling, 'x_l'), (sampling, 'y_0'))})
+            inputs={'Vector': (sampling, 'vector l')})
         tex_r = self.add_node(
             'ShaderNodeTexImage',
             name='tex_r',
             interpolation='Closest',
-            inputs={'Vector': self.add_vec((sampling, 'x_r'), (sampling, 'y_0'))})
+            inputs={'Vector': (sampling, 'vector r')})
         tex_d = self.add_node(
             'ShaderNodeTexImage',
             name='tex_d',
             interpolation='Closest',
-            inputs={'Vector': self.add_vec((sampling, 'x_0'), (sampling, 'y_d'))})
+            inputs={'Vector': (sampling, 'vector d')})
         tex_u = self.add_node(
             'ShaderNodeTexImage',
             name='tex_u',
             interpolation='Closest',
-            inputs={'Vector': self.add_vec((sampling, 'x_0'), (sampling, 'y_u'))})
+            inputs={'Vector': (sampling, 'vector u')})
 
-        interp = self.add_node(
+        waves = self.add_node(
             FMWeavePatternInterpolating,
             inputs={
                 'vector': ('input', 'vector'),
@@ -1082,7 +1082,7 @@ class FMWeavingJacquard(ShaderNodeBase):
                 'value u': tex_u,
                 })
 
-        self.add_link(interp, ('output', 'waves'))
+        self.add_link(waves, ('output', 'waves'))
 
     def update_pattern(self):
         self.get_node('tex_l').image = self.pattern
