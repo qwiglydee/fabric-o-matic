@@ -958,68 +958,47 @@ class FMWeavingTwill(ShaderNodeBase):
 
         self.add_output('NodeSocketColor', 'waves')
 
-        spread = self.add_node(
-            FMWeavePatternSampling,
-            inputs={
-                'vector': ('input', 'vector'),
-                'width': 1,
-                'height': 1,
-                })
-
+        # ('math', 'ADD', x, y)
         period = self.add_math('ADD', ('input', 'above'), ('input', 'below'))
 
-        y_0_s = self.add_math('MULTIPLY', (spread, 'y_0'), ('input', 'shift'))
-        y_d_s = self.add_math('MULTIPLY', (spread, 'y_d'), ('input', 'shift'))
-        y_u_s = self.add_math('MULTIPLY', (spread, 'y_u'), ('input', 'shift'))
+        # binary integer formula:
+        # h = (x - y * shift) mod (a + b) < a
+        def twill(vec):
+            xyz = self.add_xyz(vec)
+            return self.add_math(
+                'LESS_THAN',
+                self.add_node(
+                    FMfmodulo,
+                    inputs={
+                        'divident':
+                            self.add_math(
+                                'SUBTRACT',
+                                (xyz, 'X'),
+                                self.add_math(
+                                    'MULTIPLY',
+                                    (xyz, 'Y'),
+                                    ('input', 'shift'))),
+                        'divisor': period
+                    }),
+                ('input', 'above'))
 
-        val_l = self.add_math(
-            'LESS_THAN',
-            self.add_node(
-                FMfmodulo,
-                inputs={
-                    'divisor': period,
-                    'divident': self.add_math('SUBTRACT', (spread, 'x_l'), y_0_s)
-                    }),
-            ('input', 'above'))
-        val_r = self.add_math(
-            'LESS_THAN',
-            self.add_node(
-                FMfmodulo,
-                inputs={
-                    'divisor': period,
-                    'divident': self.add_math('SUBTRACT', (spread, 'x_r'), y_0_s)
-                    }),
-            ('input', 'above'))
-        val_d = self.add_math(
-            'LESS_THAN',
-            self.add_node(
-                FMfmodulo,
-                inputs={
-                    'divisor': period,
-                    'divident': self.add_math('SUBTRACT', (spread, 'x_0'), y_d_s)
-                    }),
-            ('input', 'above'))
-        val_u = self.add_math(
-            'LESS_THAN',
-            self.add_node(
-                FMfmodulo,
-                inputs={
-                    'divisor': period,
-                    'divident': self.add_math('SUBTRACT', (spread, 'x_0'), y_u_s)
-                    }),
-            ('input', 'above'))
+        def snap(*shift):
+            return self.add_vmath(
+                'SNAP',
+                self.add_vmath('ADD', ('input', 'vector'), ('=', shift)),
+                ('=', (1.0, 1.0, 1.0)))
 
-        interp = self.add_node(
+        waves = self.add_node(
             FMWeavePatternInterpolating,
             inputs={
                 'vector': ('input', 'vector'),
-                'v_l': val_l,
-                'v_r': val_r,
-                'v_u': val_u,
-                'v_d': val_d,
+                'value l': twill(snap(-0.5, 0.0, 0.0)),
+                'value r': twill(snap(+0.5, 0.0, 0.0)),
+                'value d': twill(snap(0.0, -0.5, 0.0)),
+                'value u': twill(snap(0.0, +0.5, 0.0)),
                 })
 
-        self.add_link(interp, ('output', 'waves'))
+        self.add_link(waves, ('output', 'waves'))
 
 
 class FMWeavingJacquard(ShaderNodeBase):
@@ -1097,10 +1076,10 @@ class FMWeavingJacquard(ShaderNodeBase):
             FMWeavePatternInterpolating,
             inputs={
                 'vector': ('input', 'vector'),
-                'v_l': tex_l,
-                'v_r': tex_r,
-                'v_d': tex_d,
-                'v_u': tex_u,
+                'value l': tex_l,
+                'value r': tex_r,
+                'value d': tex_d,
+                'value u': tex_u,
                 })
 
         self.add_link(interp, ('output', 'waves'))
