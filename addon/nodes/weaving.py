@@ -21,7 +21,7 @@ The range should be kept for `overlaying` node to work.
 import bpy
 
 from .base import ShaderNodeBase
-from .utils import FMmixfloats, FMfmodulo, FMcosine, FMcircle, FMstripes, FMwraptex
+from .utils import FMmixfloats, FMfmodulo, FMcosine, FMcircle, FMstripes
 
 
 class FMWeaveScaling(ShaderNodeBase):
@@ -830,13 +830,13 @@ class FMWeavePatternInterpolating(ShaderNodeBase):
 
         self.add_output('NodeSocketColor', 'waves')
 
-        xy = self.add_xyz(self.add_node(
-            FMwraptex,
-            inputs={
-                0: self.add_vmath(
+        xy = self.add_xyz(
+            self.add_vmath(
+                'FLOOR',
+                self.add_vmath(
                     'SUBTRACT',
                     ('input', 'vector'),
-                    ('=', (0.5, 0.5, 0.0)))}))
+                    ('=', (0.5, 0.5, 0.0)))))
 
         weft = self.add_node(
             FMcosine,
@@ -845,8 +845,8 @@ class FMWeavePatternInterpolating(ShaderNodeBase):
                     FMmixfloats,
                     inputs={
                         'fac': (xy, 'X'),
-                        'value1': ('input', 'v_l'),
-                        'value2': ('input', 'v_r'),
+                        'value 1': ('input', 'v_l'),
+                        'value 2': ('input', 'v_r'),
                     }),
                 'period': 2.0,
                 'shift': -0.5,
@@ -861,8 +861,8 @@ class FMWeavePatternInterpolating(ShaderNodeBase):
                     FMmixfloats,
                     inputs={
                         'fac': (xy, 'Y'),
-                        'value1': ('input', 'v_d'),
-                        'value2': ('input', 'v_u'),
+                        'value 1': ('input', 'v_d'),
+                        'value 2': ('input', 'v_u'),
                     }),
                 'period': 2.0,
                 'shift': 0,

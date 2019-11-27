@@ -5,40 +5,6 @@ import bpy
 from .base import ShaderNodeBase
 
 
-class FMwraptex(ShaderNodeBase):
-    """Wrapping coordinates to range 0..1"""
-    bl_idname = "fabricomatic.wraptex"
-    bl_label = "wrapping uv"
-
-    def build_tree(self):
-        self.add_input('NodeSocketVector', 'vector')
-        self.add_output('NodeSocketVector', 'vector')
-
-        xyz = self.add_xyz(('input', 'vector'))
-        res = self.add_vec(
-            self.add_math('SUBTRACT', (xyz, 'X'), self.add_math('FLOOR', (xyz, 'X'))),
-            self.add_math('SUBTRACT', (xyz, 'Y'), self.add_math('FLOOR', (xyz, 'Y'))),
-            (xyz, 'Z'))
-        self.add_link(res, ('output', 'vector'))
-
-
-class FMfloortex(ShaderNodeBase):
-    """Flooring coordinates to integers"""
-    bl_idname = "fabricomatic.floortex"
-    bl_label = "flooring uv"
-
-    def build_tree(self):
-        self.add_input('NodeSocketVector', 'vector')
-        self.add_output('NodeSocketVector', 'vector')
-
-        xyz = self.add_xyz(('input', 'vector'))
-        res = self.add_vec(
-            self.add_math('FLOOR', (xyz, 'X')),
-            self.add_math('FLOOR', (xyz, 'Y')),
-            (xyz, 'Z'))
-        self.add_link(res, ('output', 'vector'))
-
-
 class FMmixvalues(ShaderNodeBase):
     """Mix values according to thread map
 
