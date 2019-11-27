@@ -4,6 +4,23 @@ import bpy
 class ShaderNodeBuilding:
     """Base utilities to construct node trees"""
 
+    def add_input(self, kind, name, **attrs):
+        isock = self.node_tree.inputs.new(kind, name)
+        sock = self.inputs[name]
+        for attr, val in attrs.items():
+            if attr in ('min_value', 'max_value'):
+                setattr(isock, attr, val)
+            else:
+                setattr(sock, attr, val)
+        return sock
+
+    def add_output(self, kind, name, **attrs):
+        self.node_tree.outputs.new(kind, name)
+        sock = self.outputs[name]
+        for attr, val in attrs.items():
+            setattr(sock, attr, val)
+        return sock
+
     def _get_src(self, src):
         if isinstance(src, bpy.types.NodeSocket):
             return src
@@ -98,7 +115,7 @@ class ShaderNodeBuilding:
                 'Color2': color2})
 
     def get_node(self, name):
-        return self.node_tree.nodes[name]
+        return self.node_tree.nodes.get(name)
 
 
 class ShaderNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
@@ -134,21 +151,3 @@ class ShaderNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
         # print("releasing",  self)
         if self.volatile or self.node_tree.users == 1:
             bpy.data.node_groups.remove(self.node_tree)
-
-    def add_input(self, kind, name, **attrs):
-        isock = self.node_tree.inputs.new(kind, name)
-        sock = self.inputs[name]
-        for attr, val in attrs.items():
-            if attr in ('min_value', 'max_value'):
-                setattr(isock, attr, val)
-            else:
-                setattr(sock, attr, val)
-        return sock
-
-    def add_output(self, kind, name, **attrs):
-        self.node_tree.outputs.new(kind, name)
-        sock = self.outputs[name]
-        for attr, val in attrs.items():
-            setattr(sock, attr, val)
-        return sock
-

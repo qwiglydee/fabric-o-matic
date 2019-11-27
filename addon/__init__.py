@@ -64,7 +64,6 @@ class AddMenu(MenuBase, bpy.types.Menu):
         layout = self.layout
         layout.menu(AddUtilMenu.bl_idname)
         layout.menu(AddNodeMenu.bl_idname)
-        layout.separator()
         for k in templates.AddTemplateOp.TEMPLATES.keys():
             op = layout.operator(templates.AddTemplateOp.bl_idname, text=k)
             op.template = k

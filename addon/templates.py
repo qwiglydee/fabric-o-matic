@@ -9,28 +9,43 @@ GRID = 250
 
 
 class TemplateBuilder(ShaderNodeBuilding):
-    def __init__(self, mat):
-        self.node_tree = mat.node_tree
-        self.bsdf = self.get_node('Principled BSDF')
+    def __init__(self, tree):
+        self.node_tree = tree
+        self.inputs = {}
+        self.outputs = {}
+
+    def init(self):
+        coords = self.get_node('Texture Coordinate')
+        if not coords:
+            coords = self.add_node(
+                'ShaderNodeTexCoord',
+                location=(-8*GRID, 0))
+        self.inputs['UV'] = coords.outputs['UV']
+        self.inputs['Normal'] = coords.outputs['Normal']
+
+        bsdf = self.get_node('Principled BSDF')
+        if bsdf:
+            socket = bsdf.inputs['Base Color']
+            if not socket.is_linked:
+                self.outputs['color'] = socket
+            socket = bsdf.inputs['Alpha']
+            if not socket.is_linked:
+                self.outputs['alpha'] = socket
+            socket = bsdf.inputs['Normal']
+            if not socket.is_linked:
+                self.outputs['normal'] = socket
 
 
 class WeavingStub(TemplateBuilder):
-    name = "Weaving"
-
     def build_tree(self):
+
         x = -7 * GRID
-
-        coords = self.add_node(
-            'ShaderNodeTexCoord',
-            location=(x, 0))
-
-        x += GRID
 
         scaling = self.add_node(
             weaving.FMWeaveScaling,
             location=(x, 0),
             inputs={
-                'vector': (coords, 'UV')
+                'vector': self.inputs['UV']
             })
 
         x += GRID
@@ -87,12 +102,15 @@ class WeavingStub(TemplateBuilder):
                 'scale': (scaling, 'scale'),
                 'elevation': (overlaying, 'elevation'),
                 'mask': (overlaying, 'mask'),
-                'normal': (coords, 'Normal')
+                'normal': self.inputs['Normal']
             })
 
-        self.add_link((overlaying, 'mask'), (self.bsdf, 'Base Color'))
-        self.add_link((strobing, 'alpha'), (self.bsdf, 'Alpha'))
-        self.add_link((bumping, 'normal'), (self.bsdf, 'Normal'))
+        if 'color' in self.outputs:
+            self.add_link((overlaying, 'mask'), self.outputs['color'])
+        if 'alpha' in self.outputs:
+            self.add_link((strobing, 'alpha'), self.outputs['alpha'])
+        if 'normal' in self.outputs:
+            self.add_link((bumping, 'normal'), self.outputs['normal'])
 
 
 class AddTemplateOp(bpy.types.Operator):
@@ -103,7 +121,7 @@ class AddTemplateOp(bpy.types.Operator):
     template: bpy.props.StringProperty()
 
     TEMPLATES = {
-        "Weaving stub": WeavingStub,
+        "Stub weaving nodes": WeavingStub,
     }
 
     @classmethod
@@ -114,19 +132,19 @@ class AddTemplateOp(bpy.types.Operator):
         if not self.properties.is_property_set('template'):
             self.report('ERROR_INVALID_INPUT', "No template specified")
             return {'CANCELED'}
-        mat = self.create_material()
-        mat.blend_method = 'CLIP'
-        mat.cycles.displacement_method = 'BOTH'
         obj = context.active_object
-        if len(obj.material_slots) == 0:
-            bpy.ops.object.material_slot_add()
-        obj.material_slots[obj.active_material_index].material = mat
-        return {'FINISHED'}
+        mat = context.material
+        if mat is None:
+            mat = bpy.data.materials.new("weaving")
+            mat.use_nodes = True
+            mat.cycles.displacement_method = 'BOTH'
+            mat.blend_method = 'CLIP'
+            if len(obj.material_slots) == 0:
+                bpy.ops.object.material_slot_add()
+            obj.material_slots[obj.active_material_index].material = mat
 
-    def create_material(self):
         template_cls = self.TEMPLATES[self.template]
-        mat = bpy.data.materials.new(template_cls.name)
-        mat.use_nodes = True
-        template = template_cls(mat)
+        template = template_cls(mat.node_tree)
+        template.init()
         template.build_tree()
-        return mat
+        return {'FINISHED'}
