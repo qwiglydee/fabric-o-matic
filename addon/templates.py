@@ -5,7 +5,7 @@ import bpy
 from .nodes.base import ShaderNodeBuilding
 from .nodes import utils, weaving
 
-GRID = 250
+GRID = 200
 
 
 class TemplateBuilder(ShaderNodeBuilding):
@@ -19,7 +19,7 @@ class TemplateBuilder(ShaderNodeBuilding):
         if not coords:
             coords = self.add_node(
                 'ShaderNodeTexCoord',
-                location=(-8*GRID, 0))
+                location=(-1800, 0))
         self.inputs['UV'] = coords.outputs['UV']
         self.inputs['Normal'] = coords.outputs['Normal']
 
