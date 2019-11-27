@@ -753,7 +753,7 @@ class FMWeavePatternSampling(ShaderNodeBase):
             height of image in pixels
 
     Outputs:
-        coordinates rounded to pixels and shifted in various directions for later interpolation.
+        Vectors shifted and snapped.
 
     """
     bl_idname = "fabricomatic.pattern_sampling"
@@ -769,47 +769,47 @@ class FMWeavePatternSampling(ShaderNodeBase):
         self.add_input('NodeSocketInt', 'width')
         self.add_input('NodeSocketInt', 'height')
 
-        self.add_output('NodeSocketFloat', 'x_l')
-        self.add_output('NodeSocketFloat', 'x_r')
-        self.add_output('NodeSocketFloat', 'x_0')
-        self.add_output('NodeSocketFloat', 'y_0')
-        self.add_output('NodeSocketFloat', 'y_d')
-        self.add_output('NodeSocketFloat', 'y_u')
+        self.add_output('NodeSocketVector', 'vector 0')
+        self.add_output('NodeSocketVector', 'vector l')
+        self.add_output('NodeSocketVector', 'vector r')
+        self.add_output('NodeSocketVector', 'vector d')
+        self.add_output('NodeSocketVector', 'vector u')
 
-        xyz = self.add_xyz(('input', 'vector'))
+        scale = self.add_vmath(
+            'DIVIDE',
+            ('=', (1.0, 1.0, 1.0)),
+            self.add_vec(('input', 'width'), ('input', 'height')))
 
-        v_x_0 = self.add_math(
-            'DIVIDE',
-            self.add_math('FLOOR', (xyz, 'X')),
-            ('input', 'width'), name="x0")
-        v_y_0 = self.add_math(
-            'DIVIDE',
-            self.add_math('FLOOR', (xyz, 'Y')),
-            ('input', 'height'), name="y0")
+        vec_0 = self.add_vmath(
+            'SNAP',
+            self.add_vmath(
+                'MULTIPLY',
+                ('input', 'vector'),
+                scale),
+            scale)
 
-        v_x_l = self.add_math(
-            'DIVIDE',
-            self.add_math('FLOOR', self.add_math('SUBTRACT', (xyz, 'X'), 0.5)),
-            ('input', 'width'), name="x-")
-        v_x_r = self.add_math(
-            'DIVIDE',
-            self.add_math('FLOOR', self.add_math('ADD', (xyz, 'X'), 0.5)),
-            ('input', 'width'), name="x+")
-        v_y_d = self.add_math(
-            'DIVIDE',
-            self.add_math('FLOOR', self.add_math('SUBTRACT', (xyz, 'Y'), 0.5)),
-            ('input', 'height'), name="y-")
-        v_y_u = self.add_math(
-            'DIVIDE',
-            self.add_math('FLOOR', self.add_math('ADD', (xyz, 'Y'), 0.5)),
-            ('input', 'height'), name="y+")
+        def scalesnap(shift):
+            return self.add_vmath(
+                'SNAP',
+                self.add_vmath(
+                    'MULTIPLY',
+                    self.add_vmath(
+                        'ADD',
+                        ('input', 'vector'),
+                        ('=', shift)),
+                    scale),
+                scale)
 
-        self.add_link(v_x_l, ('output', 'x_l'))
-        self.add_link(v_x_r, ('output', 'x_r'))
-        self.add_link(v_x_0, ('output', 'x_0'))
-        self.add_link(v_y_0, ('output', 'y_0'))
-        self.add_link(v_y_d, ('output', 'y_d'))
-        self.add_link(v_y_u, ('output', 'y_u'))
+        vec_l = scalesnap((-0.5, 0.0, 0.0))
+        vec_r = scalesnap((+0.5, 0.0, 0.0))
+        vec_d = scalesnap((0.0, -0.5, 0.0))
+        vec_u = scalesnap((0.0, +0.5, 0.0))
+
+        self.add_link(vec_0, ('output', 'vector 0'))
+        self.add_link(vec_l, ('output', 'vector l'))
+        self.add_link(vec_r, ('output', 'vector r'))
+        self.add_link(vec_d, ('output', 'vector d'))
+        self.add_link(vec_u, ('output', 'vector u'))
 
 
 class FMWeavePatternInterpolating(ShaderNodeBase):
@@ -823,20 +823,20 @@ class FMWeavePatternInterpolating(ShaderNodeBase):
 
     def build_tree(self):
         self.add_input('NodeSocketVector', 'vector')
-        self.add_input('NodeSocketFloat', 'v_l')
-        self.add_input('NodeSocketFloat', 'v_r')
-        self.add_input('NodeSocketFloat', 'v_d')
-        self.add_input('NodeSocketFloat', 'v_u')
+        self.add_input('NodeSocketFloat', 'value l')
+        self.add_input('NodeSocketFloat', 'value r')
+        self.add_input('NodeSocketFloat', 'value d')
+        self.add_input('NodeSocketFloat', 'value u')
 
         self.add_output('NodeSocketColor', 'waves')
 
-        xy = self.add_xyz(
+        xyz = self.add_xyz(
             self.add_vmath(
-                'FLOOR',
+                'FRACTION',
                 self.add_vmath(
-                    'SUBTRACT',
+                    'ADD',
                     ('input', 'vector'),
-                    ('=', (0.5, 0.5, 0.0)))))
+                    ('=', (-0.5, -0.5, 0.0)))))
 
         weft = self.add_node(
             FMcosine,
@@ -844,9 +844,9 @@ class FMWeavePatternInterpolating(ShaderNodeBase):
                 't': self.add_node(
                     FMmixfloats,
                     inputs={
-                        'fac': (xy, 'X'),
-                        'value 1': ('input', 'v_l'),
-                        'value 2': ('input', 'v_r'),
+                        'fac': (xyz, 'X'),
+                        'value 1': ('input', 'value l'),
+                        'value 2': ('input', 'value r'),
                     }),
                 'period': 2.0,
                 'shift': -0.5,
@@ -860,9 +860,9 @@ class FMWeavePatternInterpolating(ShaderNodeBase):
                 't': self.add_node(
                     FMmixfloats,
                     inputs={
-                        'fac': (xy, 'Y'),
-                        'value 1': ('input', 'v_d'),
-                        'value 2': ('input', 'v_u'),
+                        'fac': (xyz, 'Y'),
+                        'value 1': ('input', 'value d'),
+                        'value 2': ('input', 'value u'),
                     }),
                 'period': 2.0,
                 'shift': 0,
