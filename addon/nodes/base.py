@@ -1,57 +1,8 @@
 import bpy
 
 
-class ShaderNodeBase(bpy.types.ShaderNodeCustomGroup):
+class ShaderNodeBuilding:
     """Base utilities to construct node trees"""
-
-    "marks node to share its nodetree"
-    volatile: bool = False
-
-    def init(self, _context):
-        self.init_tree()
-
-    def copy(self, node):
-        self.init_tree()
-        for k, i in node.inputs.items():
-            self.inputs[k].default_value = i.default_value
-
-    def init_tree(self):
-        # print("initializing",  self)
-        name = "." + self.__class__.__name__
-        if self.volatile:
-            name += ".000"
-        if not self.volatile and name in bpy.data.node_groups:
-            self.node_tree = bpy.data.node_groups[name]
-        else:
-            self.node_tree = bpy.data.node_groups.new(name, 'ShaderNodeTree')
-            self.node_tree.nodes.new('NodeGroupInput')
-            self.node_tree.nodes.new('NodeGroupOutput')
-            self.build_tree()
-
-    def free(self):
-        self.free_tree()
-
-    def free_tree(self):
-        # print("releasing",  self)
-        if self.volatile or self.node_tree.users == 1:
-            bpy.data.node_groups.remove(self.node_tree)
-
-    def add_input(self, kind, name, **attrs):
-        isock = self.node_tree.inputs.new(kind, name)
-        sock = self.inputs[name]
-        for attr, val in attrs.items():
-            if attr in ('min_value', 'max_value'):
-                setattr(isock, attr, val)
-            else:
-                setattr(sock, attr, val)
-        return sock
-
-    def add_output(self, kind, name, **attrs):
-        self.node_tree.outputs.new(kind, name)
-        sock = self.outputs[name]
-        for attr, val in attrs.items():
-            setattr(sock, attr, val)
-        return sock
 
     def _get_src(self, src):
         if isinstance(src, bpy.types.NodeSocket):
@@ -148,3 +99,56 @@ class ShaderNodeBase(bpy.types.ShaderNodeCustomGroup):
 
     def get_node(self, name):
         return self.node_tree.nodes[name]
+
+
+class ShaderNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
+    """Base class for self-building nodes"""
+
+    volatile: bool = False
+
+    def init(self, _context):
+        self.init_tree()
+
+    def copy(self, node):
+        self.init_tree()
+        for k, i in node.inputs.items():
+            self.inputs[k].default_value = i.default_value
+
+    def init_tree(self):
+        # print("initializing",  self)
+        name = "." + self.__class__.__name__
+        if self.volatile:
+            name += ".000"
+        if not self.volatile and name in bpy.data.node_groups:
+            self.node_tree = bpy.data.node_groups[name]
+        else:
+            self.node_tree = bpy.data.node_groups.new(name, 'ShaderNodeTree')
+            self.node_tree.nodes.new('NodeGroupInput')
+            self.node_tree.nodes.new('NodeGroupOutput')
+            self.build_tree()
+
+    def free(self):
+        self.free_tree()
+
+    def free_tree(self):
+        # print("releasing",  self)
+        if self.volatile or self.node_tree.users == 1:
+            bpy.data.node_groups.remove(self.node_tree)
+
+    def add_input(self, kind, name, **attrs):
+        isock = self.node_tree.inputs.new(kind, name)
+        sock = self.inputs[name]
+        for attr, val in attrs.items():
+            if attr in ('min_value', 'max_value'):
+                setattr(isock, attr, val)
+            else:
+                setattr(sock, attr, val)
+        return sock
+
+    def add_output(self, kind, name, **attrs):
+        self.node_tree.outputs.new(kind, name)
+        sock = self.outputs[name]
+        for attr, val in attrs.items():
+            setattr(sock, attr, val)
+        return sock
+

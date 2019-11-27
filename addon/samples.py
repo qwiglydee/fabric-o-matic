@@ -1,40 +1,8 @@
+"""Utilities sto implrt materials from samples library"""
+
 import os
 
 import bpy
-
-preview_collections = {}
-
-# def enum_previews_from_directory_items(self, context):
-#     """EnumProperty callback"""
-#     enum_items = []
-#
-#     if context is None:
-#         return enum_items
-#
-#     directory = PREVIEWS
-#
-#     # Get the preview collection (defined in register func).
-#     pcoll = preview_collections["main"]
-#
-#     if pcoll.enum_items is not None:
-#         return pcoll.enum_items
-#
-#     print("Scanning directory: %s" % PREVIEWS)
-#
-#     # Scan the directory for png files
-#     image_paths = []
-#     for fn in os.listdir(directory):
-#         if fn.lower().endswith(".png"):
-#             image_paths.append(fn)
-#
-#     for i, name in enumerate(image_paths):
-#         # generates a thumbnail preview for a file.
-#         filepath = os.path.join(directory, name)
-#         thumb = pcoll.load(name, filepath, 'IMAGE')
-#         enum_items.append((name, name, "", thumb.icon_id, i))
-#     pcoll.enum_items = enum_items
-#
-#     return enum_items
 
 
 class Library:

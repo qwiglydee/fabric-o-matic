@@ -3,7 +3,7 @@ import bpy
 import bpy.utils.previews
 
 from .nodes import utils, weaving
-from . import samples
+from . import samples, templates
 
 bl_info = {
     'name': "Fabric-o-matic",
@@ -67,12 +67,9 @@ class AddMenu(MenuBase, bpy.types.Menu):
         layout.menu(AddUtilMenu.bl_idname)
         layout.menu(AddNodeMenu.bl_idname)
         layout.separator()
-        op = layout.operator(samples.ImportMaterialOp.bl_idname, text="Basic weaving")
-        op.material = 'Basic weaving'
-        op = layout.operator(samples.ImportMaterialOp.bl_idname, text="Basic twill")
-        op.material = 'Basic twill'
-        op = layout.operator(samples.ImportMaterialOp.bl_idname, text="Basic jacquard")
-        op.material = 'Basic jacquard'
+        for k in templates.AddTemplateOp.TEMPLATES.keys():
+            op = layout.operator(templates.AddTemplateOp.bl_idname, text=k)
+            op.template = k
         layout.operator(samples.BrowseLibraryOp.bl_idname, text="Browse library...")
 
 
@@ -103,6 +100,7 @@ classes = (
     weaving.FMWeaveBumping,
     samples.BrowseLibraryOp,
     samples.ImportMaterialOp,
+    templates.AddTemplateOp,
     AddNodeMenu,
     AddUtilMenu,
     AddMenu,

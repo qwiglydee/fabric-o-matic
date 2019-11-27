@@ -50,17 +50,13 @@ class FMmixvalues(ShaderNodeBase):
 
     def init(self, context):
         super().init(context)
-        self.inputs['value1'].default_value = 0
-        self.inputs['value2'].default_value = 0.25
-        self.inputs['color1'].default_value = (0.5, 0.5, 0.5, 1.0)
-        self.inputs['color2'].default_value = (0.25, 0.25, 0.25, 1.0)
 
     def build_tree(self):
         self.add_input('NodeSocketColor', 'mask')
-        self.add_input('NodeSocketFloat', 'value1')
-        self.add_input('NodeSocketFloat', 'value2')
-        self.add_input('NodeSocketColor', 'color1')
-        self.add_input('NodeSocketColor', 'color2')
+        self.add_input('NodeSocketFloat', 'value R')
+        self.add_input('NodeSocketFloat', 'value G')
+        self.add_input('NodeSocketColor', 'color R')
+        self.add_input('NodeSocketColor', 'color G')
 
         self.add_output('NodeSocketFloat', 'value')
         self.add_output('NodeSocketColor', 'color')
@@ -69,13 +65,13 @@ class FMmixvalues(ShaderNodeBase):
 
         val = self.add_math(
             'ADD',
-            self.add_math('MULTIPLY', ('input', 'value1'), (mask, 'R')),
-            self.add_math('MULTIPLY', ('input', 'value2'), (mask, 'G')))
+            self.add_math('MULTIPLY', ('input', 'value R'), (mask, 'R')),
+            self.add_math('MULTIPLY', ('input', 'value G'), (mask, 'G')))
 
         col = self.add_mix(
             'ADD',
-            self.add_mix('MIX', ('=', (0, 0, 0, 0)), ('input', 'color1'), fac=(mask, 'R')),
-            self.add_mix('MIX', ('=', (0, 0, 0, 0)), ('input', 'color2'), fac=(mask, 'G')))
+            self.add_mix('MIX', ('=', (0, 0, 0, 0)), ('input', 'color R'), fac=(mask, 'R')),
+            self.add_mix('MIX', ('=', (0, 0, 0, 0)), ('input', 'color G'), fac=(mask, 'G')))
 
         self.add_link(val, ('output', 'value'))
         self.add_link(col, ('output', 'color'))
@@ -91,8 +87,8 @@ class FMmixfloats(ShaderNodeBase):
 
     def build_tree(self):
         self.add_input('NodeSocketFloat', 'fac')
-        self.add_input('NodeSocketFloat', 'value1')
-        self.add_input('NodeSocketFloat', 'value2')
+        self.add_input('NodeSocketFloat', 'value 1')
+        self.add_input('NodeSocketFloat', 'value 2')
         self.add_output('NodeSocketFloat', 'value')
         val = self.add_math(
             'ADD',
@@ -100,11 +96,11 @@ class FMmixfloats(ShaderNodeBase):
                 'MULTIPLY',
                 self.add_math(
                     'SUBTRACT', 1.0, ('input', 'fac')),
-                ('input', 'value1')),
+                ('input', 'value 1')),
             self.add_math(
                 'MULTIPLY',
                 ('input', 'fac'),
-                ('input', 'value2')))
+                ('input', 'value 2')))
         self.add_link(val, ('output', 'value'))
 
 
