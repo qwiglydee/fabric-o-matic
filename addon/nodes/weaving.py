@@ -1,19 +1,26 @@
-""" Weaving module
-
+"""
 The nodes in this module generate stripes of woven fabric.
 Warp stripes go along V(Y) axis. Weft stripes go along U(X) axis.
-
-Texture space is divided into cells with size 1.0 in each direction.
-Generated stripes are placed in the middle of the cells, one stripe per cell.
-If texture vector is unscaled, there will be just one cross in the texture.
 
 Resulting values are encoded as colors/images
 with R channel corresponding to weft and G channel corresponding to warp.
 The values are not generally restricted to range 0..1 and any operations could be applied to them via `MixRGB` node.
 
-The three weaving nodes (plain, twill, jacquard) generate elevation waves in range -1.0 .. +1.0
-with -1.0 indicating back side and +1.0 face side. The generated waves are cell-wide and independant from stobing (width).
-The range should be kept for `overlaying` node to work.
+All the nodes suppose texture space to be divided into weaving cells, so that each cell contains single cross.
+The cells has texture coordinates in range ``n + 0.0 .. n + 1.0``
+
+The strobing nodes place stripes in the middle of each cell,
+so that center of each stripe has coordinate ``n + 0.5``.
+
+The weaving nodes generate elevation waves in range ``-1.0 .. +1.0``
+with -1.0 indicating back side and +1.0 face side.
+Elevation changes sinusoidally starting and ending at centers of neighbour cells.
+Weaving nodes are unaware of stripes width and generate cell-wide waves.
+
+When generating very thick stripes it may result in some visible intersections.
+This could be fixed with ``RGBCurves`` applied to waves to make more steep,
+but value range -1 to +1 shoudle be preserved.
+And this may produce other more ugly artefacts, not yet fixed.
 
 """
 import bpy
@@ -23,28 +30,29 @@ from .utils import FMmixfloats, FMfmodulo, FMcosine, FMcircle, FMstripes
 
 
 class FMWeaveScaling(ShaderNodeBase):
-    """Scaling texture vector
+    """Dividing texture space.
 
-    Subdivides texture space into fabric cells according to thread count.
+    Scales vector to form weaving cells according to desired thread count.
+    Basically, a wrapper around few simple vector math operations.
 
     Options:
         balanced
-            Use the same frequency for warp and weft scaling.
+            Use the same thread count for warp and weft.
 
     Inputs:
         vector
-            Original texture vector
+            Original texture vector.
         thread count
-            Number of stripes per original texture unit.
+            Desired number of stripes per original texture unit.
 
     Outputs:
         vector
             Scaled vector.
         scale
-            Resulting size of fabric cells (relative to original texture unit).
+            Resulting size of weaving cells (relative to original texture unit). I don't know what is it for.
         snapped
-            Original vector snapped to fabric cells.
-            Using the vector for some texture will produce same value within each cell.
+            Original vector snapped to weaving cells.
+            Using the vector for some texture like noise will produce same value within each cell.
     """
     bl_idname = "fabricomatic.weave_scaling"
     bl_label = "weave scaling"
@@ -145,11 +153,6 @@ class FMWeaveStrobingMixin(ShaderNodeBase):
 class FMWeaveStrobing(FMWeaveStrobingMixin, ShaderNodeBase):
     """Generating periodic stripes for warp and weft.
 
-    The stripes are placed in the middle of each texture cell.
-
-    The profile is triangle with value 0.0 at stripe edges and 1.0 in the middle.
-    It could be shaped with curves or `profiling` node.
-
     Options:
         balanced
             Use the same thickness for warp and weft scaling
@@ -158,17 +161,18 @@ class FMWeaveStrobing(FMWeaveStrobingMixin, ShaderNodeBase):
 
     Inputs:
         vector
-            UV vector (pre scaled according to desired density)
+            UV vector
         thickness
-            Relative width of stripes (ratio of yarn to holes, with 1 = cover full area)
+            Relative width of stripes (ratio of fill to gaps, with 1 = cover full area)
 
     Outputs:
         strobes
             Boolean mask indicating presence of warp or weft
         alpha
-            Overall transparency, either binary or smooth
+            Boolean mask of stripes/gaps
         profiles
             Triangle-shaped bump elevation of each stripe.
+            It has value 1.0 in the middle of stripes, and 0.0 at its edges.
     """
     bl_idname = "fabricomatic.weave_strobing"
     bl_label = "weave strobing"
@@ -223,13 +227,15 @@ class FMWeaveStrobing(FMWeaveStrobingMixin, ShaderNodeBase):
 
 
 class FMWeaveStrobingBulged(FMWeaveStrobingMixin, ShaderNodeBase):
-    """Generating stripes with increased width on face side
+    """Generating bulged stripes.
 
-    The same as `weave strobing`, but with variable width according to provided elevation.
+    The stripes have increased with in the middle (on facing side).
+
+    It simulates fluffing of yarn floats.
 
     Inputs:
         vector
-            UV vector (pre scaled according to desired density)
+            UV vector
         waves
             Map of stripes elevation (from some `weaving` node)
         min thickness
@@ -337,6 +343,8 @@ class FMWeaveProfiling(ShaderNodeBase):
     """Converting triangle profile to decent shape.
 
     Simply maps values 0..1 to some predefined curve.
+    It can be done with curves, but it's hard to make them smooth at edges.
+
     """
     bl_idname = "fabricomatic.weave_profiling"
     bl_label = "weave profiling"
@@ -409,38 +417,42 @@ class FMWeaveProfiling(ShaderNodeBase):
 
 
 class FMWeaveOverlaying(ShaderNodeBase):
-    """Adjusting and combining maps
+    """Combining and adjusting maps.
 
     The elevation and profiles are scaled according to provided thickness.
-    Waves of stripes are adjusted, so that they lay on top of each other.
+    Waves of stripes are adjusted, so that they lay precisely on top of each other.
 
     Stiffness makes corresponding stripes more straight and less waving.
 
+    It simulates tension of yarn in loom.
+    Usually it is warp yarn straighened in loom's frame,
+    but some weavers beat weft yarn so hard that it becomes the other way around.
+
     Options:
         balanced
-            Use the same thickness for warp and weft scaling
+            Use the same thickness for warp and weft.
         stifness
-            Apply stiffness
+            Apply stiffness. Applying it to both warp and weft will obviously compensate the effect.
 
     Inputs:
         strobes
-            Boolean map of stripes
+            Boolean map of stripes.
         profiles
-            Height map of stripes' profiles
+            Height map of stripes' profiles.
         waves
-            Height map of stripes' waves
+            Height map of stripes' waves. Should be in range ``-1 .. +1``
         thickness
-            Height of stripes (radius of semi-curcular shape)
+            Height of stripes (kinda radius of semi-circular shape).
         stiffness
-            Stiffness of corresponding stripes (1.0 = no waving)
+            Stiffness of corresponding stripes (1.0 = no waving).
 
     Outputs:
         evalation
-            Combined elevation of waves and profiles separately for each channel
+            Combined elevation of waves and profiles separately for each channel.
         mask
-            Map indicating which kind of stripe is on top
+            Map indicating which kind of stripe is on face side.
         height
-            Resulting height for bump mapping
+            Resulting height for bump mapping.
     """
 
     # stiffnessless:
@@ -628,18 +640,26 @@ class FMWeaveOverlaying(ShaderNodeBase):
 class FMWeavePatternSampling(ShaderNodeBase):
     """Generating coordinates for pattern sampling.
 
-    Coordinates are scaled and rounded, so that each pixel of pattern corresponds to a cell of weaving.
+    Coordinates are snapped so that each pixel of pattern corresponds to cell of weaving.
+    The vectors are shifted to point to neighbouring pixels/cells.
+
+    The vectors should be fed to texture node and the resulting color routed to
+    `FMWeavePatternInterpolating` to produce smooth waves.
+
+    Parameters:
+        image
+            The pattern image. Should be black-n-white.
 
     Inputs:
         vector
-            original vector, assuming all pattern fit range 0..1
+            UV vector
         width
-            width of image in pixels
+            width of image in pixels.
         height
-            height of image in pixels
+            height of image in pixels.
 
     Outputs:
-        Vectors shifted and snapped.
+        Vectors shifted left/right up/down, and snapped to cells or half-cells.
 
     """
     bl_idname = "fabricomatic.pattern_sampling"
@@ -699,9 +719,15 @@ class FMWeavePatternSampling(ShaderNodeBase):
 
 
 class FMWeavePatternInterpolating(ShaderNodeBase):
-    """Interpolating sampled pattern
+    """Interpolating sampled pattern.
 
-    Produces wave-map from values sampled from pattern.
+    Interpolates values from heighbour cells to form smooth transitions.
+
+    Inputs:
+        vector
+            original, unsnapped vector
+        value l/r/u/d
+            values for neighbouring cells
     """
 
     bl_idname = "fabricomatic.pattern_interpolating"
@@ -768,11 +794,10 @@ class FMWeavingPlain(ShaderNodeBase):
 
     Inputs:
         vector
-            pre-scaled vector
+            UV vector
 
     Outputs:
         waves
-            map of stripe elevation, in range -1.0..+1.0
 
     """
     bl_idname = "fabricomatic.weaving_plain"
@@ -811,11 +836,13 @@ class FMWeavingPlain(ShaderNodeBase):
 class FMWeavingTwill(ShaderNodeBase):
     """Twill weaving
 
-    Generating interlacing according to twill scheme.
+    Generating interlacing according to twill scheme specifying how weft yarn goes between warp yarns.
+
+    This covers all kinds of twill and satin weaving. Especially if to change parametyers dynamically.
 
     Inputs:
         vector
-            pre-scaled vector
+            UV vector
         above
             number of cells a weft stripe is on face side (above warp)
         below
@@ -890,20 +917,20 @@ class FMWeavingTwill(ShaderNodeBase):
 class FMWeavingJacquard(ShaderNodeBase):
     """Jacquard weaving.
 
-    Generating interlacing according to given pattern image, corrssponding to "weaving draft" in weaving reality.
+    Generating interlacing according to given pattern image (corresponding to "weaving draft" in weaving reality).
     White pixels indicate weft-facing cells, black pixels indicate warp-facing cells.
 
     Paramaters:
         pattern
-            an black-n-white image specifying weaving pattern
+            a black-n-white image specifying weaving pattern.
 
     Inputs:
         vector
-            pre-scaled vector
+            UV vector.
 
     Outputs:
         waves
-            map of stripe elevation, in range -1.0..+1.0
+            map of stripe elevation.
 
     """
     bl_idname = "fabricomatic.weaving_jacquard"

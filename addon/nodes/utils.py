@@ -1,3 +1,6 @@
+"""
+Various utility nodes
+"""
 import math
 
 import bpy
@@ -8,8 +11,19 @@ from .base import ShaderNodeBase
 class FMmixvalues(ShaderNodeBase):
     """Mix values according to thread map
 
-    Uses triple mixing with 0 values for black mask.
-    Mask need not to be boolean.
+    Outputs value or color corresponding to value of thread map
+
+    Inputs:
+        - mask
+            R/G mask of threads
+        - value R/G
+            scalar value
+        - color R/G
+            color
+
+    Outputs:
+        - value
+        - color
     """
     bl_idname = "fabricomatic.mixvalues"
     bl_label = "mixing values"
@@ -44,7 +58,10 @@ class FMmixvalues(ShaderNodeBase):
 
 
 class FMmixfloats(ShaderNodeBase):
-    """Mixing floats with factor"""
+    """Mixing floats with factor
+
+    Very dumb node.
+    """
     bl_idname = "fabricomatic.mixfloats"
     bl_label = "mixing floats"
 
@@ -207,18 +224,6 @@ class FMcosine(ShaderNodeBase):
         self.add_link(out, ('output', 0))
 
 
-# class FMbezier(NodeTreeBuilder, bpy.types.ShaderNodeCustomGroup):
-#     """Generating bezier easing"""
-#     bl_idname = "fabricomatic.easing"
-#     bl_label = "easing"
-#
-#     p1: bpy.props.FloatVectorProperty(name="p1", size=2,
-#         description="control point 1",
-#         update=lambda s,c: s.tweak_points())
-#     p2: bpy.props.FloatVectorProperty(name="p2", size=2,
-#         description="control point 2",
-#         update=lambda s,c: s.tweak_points())
-
 class FMcircle(ShaderNodeBase):
     """Maps range 0..2 to semicircle curve"""
     bl_idname = "fabricomatic.circle"
@@ -250,28 +255,28 @@ class FMcircle(ShaderNodeBase):
 class FMstripes(ShaderNodeBase):
     """Generatng periodic 1-dimentional stripes
 
-    the stripes are placed in the middle of period.
+    Generates a signal indicating presence of stripes.
+    The stripe is placed in the middle of period range.
 
     Inputs:
-        t
+        - t
             coordinate
-        period
+        - period
             period
-        thickness
-            ratio of stripe/period
+        - thickness
+            amount of stripe in range
 
     Outputs:
-        strobe
-            boolean, =1 where stripe is present
-        profile
-            triangle profile of stripe with 0.0 at edges and 1.0 at middle
+        - strobe
+            boolean value, =1.0 where stripe is present
+        - profile
+            triangle value, =1.0 in the very middle, =0.0 at stripe edges
     """
 
     # Formulas:
     #     val = zigzag(t, period) + w
     #     strobe = val > 0
     #     triangle = max(0, val/w)
-    #     round = sqrt(triangle * 2 - triangle^2)
 
     bl_idname = "fabricomatic.stripes"
     bl_label = "stripes"

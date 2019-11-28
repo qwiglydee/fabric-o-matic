@@ -20,10 +20,10 @@
   - [x] waffle
 - [x] generating preview for library
 - [x] UI to browse library
+- [x] write API documentation for all the nodes
+- [x] autogenerate API documentation pages
 - [ ] create demo/tutorial reel with all features (without any chatting)
   - using basic templates, tweaking parameters
-- [x] write API documentation for all the nodes
-- [ ] autogenerate API documentation pages
 
 
 ## FUTURE

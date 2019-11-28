@@ -74,7 +74,6 @@ def extend_add_menu(self, _context):
 
 
 classes = (
-    utils.FMmixfloats,
     utils.FMmixvalues,
     utils.FMfmodulo,
     utils.FMzigzag,

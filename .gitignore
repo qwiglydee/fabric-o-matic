@@ -3,3 +3,4 @@ __pychache__/
 !/.gitignore
 *.blend[0-9]
 
+/docs/doctrees/
