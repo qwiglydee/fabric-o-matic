@@ -27,6 +27,8 @@ def show_objects(b, *names):
 if __name__ == "__main__":
     clean_previews()
     for m in bpy.data.materials.values():
+        if m.name[0] == '.':
+            continue
         if m.name == 'Wicker':
             show_objects(True, 'Torus')
             show_objects(False, 'Sphere', 'Cloth')
