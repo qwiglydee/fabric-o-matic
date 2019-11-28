@@ -8,13 +8,11 @@ Generated stripes are placed in the middle of the cells, one stripe per cell.
 If texture vector is unscaled, there will be just one cross in the texture.
 
 Resulting values are encoded as colors/images
-with R channel encoding value for weft and G channel encoding value for warp.
+with R channel corresponding to weft and G channel corresponding to warp.
 The values are not generally restricted to range 0..1 and any operations could be applied to them via `MixRGB` node.
 
-When applying bump, each stripe has kinda semicircular profile.
-
 The three weaving nodes (plain, twill, jacquard) generate elevation waves in range -1.0 .. +1.0
-with -1.0 indicating back side and +1.0 face side. The generated waves are cell-wide and independant from stobing.
+with -1.0 indicating back side and +1.0 face side. The generated waves are cell-wide and independant from stobing (width).
 The range should be kept for `overlaying` node to work.
 
 """
@@ -25,16 +23,18 @@ from .utils import FMmixfloats, FMfmodulo, FMcosine, FMcircle, FMstripes
 
 
 class FMWeaveScaling(ShaderNodeBase):
-    """Scale UV space
+    """Scaling texture vector
 
-    This is just a compact version of `Mapping`.
+    Subdivides texture space into fabric cells according to thread count.
 
     Options:
         balanced
-            Use the same density for warp and weft scaling.
+            Use the same frequency for warp and weft scaling.
 
     Inputs:
-        density
+        vector
+            Original texture vector
+        thread count
             Number of stripes per original texture unit.
 
     Outputs:
@@ -42,6 +42,9 @@ class FMWeaveScaling(ShaderNodeBase):
             Scaled vector.
         scale
             Resulting size of fabric cells (relative to original texture unit).
+        snapped
+            Original vector snapped to fabric cells.
+            Using the vector for some texture will produce same value within each cell.
     """
     bl_idname = "fabricomatic.weave_scaling"
     bl_label = "weave scaling"
@@ -56,9 +59,9 @@ class FMWeaveScaling(ShaderNodeBase):
 
     def init(self, context):
         super().init(context)
-        self.inputs['density'].default_value = 100
-        self.inputs['warp density'].default_value = 100
-        self.inputs['weft density'].default_value = 100
+        self.inputs['threads count'].default_value = 200
+        self.inputs['warp count'].default_value = 200
+        self.inputs['weft count'].default_value = 200
         self.tweak_balance()
 
     def copy(self, node):
@@ -67,41 +70,35 @@ class FMWeaveScaling(ShaderNodeBase):
 
     def build_tree(self):
         self.add_input('NodeSocketVector', 'vector')
-        self.add_input('NodeSocketFloat', 'density', min_value=0.0)
-        self.add_input('NodeSocketFloat', 'warp density', min_value=0.0)
-        self.add_input('NodeSocketFloat', 'weft density', min_value=0.0)
+        self.add_input('NodeSocketFloat', 'threads count', min_value=0.0)
+        self.add_input('NodeSocketFloat', 'warp count', min_value=0.0)
+        self.add_input('NodeSocketFloat', 'weft count', min_value=0.0)
 
         self.add_output('NodeSocketVector', 'vector')
-        self.add_output('NodeSocketColor', 'scale')
+        self.add_output('NodeSocketVector', 'scale')
+        self.add_output('NodeSocketVector', 'snapped')
 
-        # rerouted from tweak_balanced
-        d_wrp = self.add_node('NodeReroute', name='d_wrp')
-        d_wft = self.add_node('NodeReroute', name='d_wft')
+        # x = warp count, y = weft count
+        # rerouted in tweak_balance
+        freq = self.add_vec(0.0, 0.0, name='freq')
 
-        xyz = self.add_xyz(('input', 'vector'))
-
-        x_wrp = self.add_math('MULTIPLY', (xyz, 'X'), d_wrp)
-        y_wft = self.add_math('MULTIPLY', (xyz, 'Y'), d_wft)
-
-        vector = self.add_vec(x_wrp, y_wft)
-        scale = self.add_col(
-            self.add_math('DIVIDE', 1.0, d_wft),
-            self.add_math('DIVIDE', 1.0, d_wrp),
-        )
-
+        vector = self.add_vmath('MULTIPLY', ('input', 'vector'), freq)
+        scale = self.add_vmath('DIVIDE', ('=', (1.0, 1.0, 1.0)), freq)
+        snapped = self.add_vmath('SNAP', ('input', 'vector'), scale)
         self.add_link(vector, ('output', 'vector'))
         self.add_link(scale, ('output', 'scale'))
+        self.add_link(snapped, ('output', 'snapped'))
 
     def tweak_balance(self):
-        self.inputs['density'].enabled = self.balanced
-        self.inputs['warp density'].enabled = not self.balanced
-        self.inputs['weft density'].enabled = not self.balanced
+        self.inputs['threads count'].enabled = self.balanced
+        self.inputs['warp count'].enabled = not self.balanced
+        self.inputs['weft count'].enabled = not self.balanced
         if self.balanced:
-            self.add_link(('input', 'density'), 'd_wrp')
-            self.add_link(('input', 'density'), 'd_wft')
+            self.add_link(('input', 'threads count'), ('freq', 'X'))
+            self.add_link(('input', 'threads count'), ('freq', 'Y'))
         else:
-            self.add_link(('input', 'warp density'), 'd_wrp')
-            self.add_link(('input', 'weft density'), 'd_wft')
+            self.add_link(('input', 'warp count'), ('freq', 'X'))
+            self.add_link(('input', 'weft count'), ('freq', 'Y'))
 
     def draw_buttons(self, _context, layout):
         layout.prop(self, 'balanced')
@@ -146,7 +143,7 @@ class FMWeaveStrobingMixin(ShaderNodeBase):
 
 
 class FMWeaveStrobing(FMWeaveStrobingMixin, ShaderNodeBase):
-    """Generating periodic stripes for warp and weft
+    """Generating periodic stripes for warp and weft.
 
     The stripes are placed in the middle of each texture cell.
 
@@ -414,8 +411,8 @@ class FMWeaveProfiling(ShaderNodeBase):
 class FMWeaveOverlaying(ShaderNodeBase):
     """Adjusting and combining maps
 
-    The elevation is scaled according to provided thickness and adjusted,
-    so that stripes lay on top of each other.
+    The elevation and profiles are scaled according to provided thickness.
+    Waves of stripes are adjusted, so that they lay on top of each other.
 
     Stiffness makes corresponding stripes more straight and less waving.
 
@@ -424,24 +421,26 @@ class FMWeaveOverlaying(ShaderNodeBase):
             Use the same thickness for warp and weft scaling
         stifness
             Apply stiffness
-        soft mask
-            Generate soft mask with overlapping stripes
 
     Inputs:
-        vector
-            UV vector (pre scaled according to desired density)
+        strobes
+            Boolean map of stripes
+        profiles
+            Height map of stripes' profiles
+        waves
+            Height map of stripes' waves
         thickness
-            Relative height of stripes and waves
+            Height of stripes (radius of semi-curcular shape)
         stiffness
-            Stifness (1.0 = no waving)
+            Stiffness of corresponding stripes (1.0 = no waving)
 
     Outputs:
         evalation
-            Combined elevation separately for each channel
+            Combined elevation of waves and profiles separately for each channel
         mask
             Map indicating which kind of stripe is on top
         height
-            Resulting elevation
+            Resulting height for bump mapping
     """
 
     # stiffnessless:
@@ -479,12 +478,6 @@ class FMWeaveOverlaying(ShaderNodeBase):
         update=lambda s, c: s.tweak_stiffnessful(),
         description="Straighten stripes")
 
-    # softmask: bpy.props.BoolProperty(
-    #     name="Soft mask",
-    #     description="Make mask smooth",
-    #     default=True,
-    #     update=lambda s, c: s.tweak_softness())
-    #
     def init(self, context):
         super().init(context)
         self.inputs['thickness'].default_value = 0.5
@@ -682,7 +675,7 @@ class FMWeaveBumping(ShaderNodeBase):
         self.stamp_mode = node.stamp_mode
 
     def build_tree(self):
-        self.add_input('NodeSocketColor', 'scale')
+        self.add_input('NodeSocketVector', 'scale')
         self.add_input('NodeSocketColor', 'elevation')
         self.add_input('NodeSocketColor', 'mask')
 
