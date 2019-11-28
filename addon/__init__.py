@@ -37,7 +37,6 @@ class AddNodeMenu(MenuBase, bpy.types.Menu):
         self.draw_node_item(weaving.FMWeavingTwill)
         self.draw_node_item(weaving.FMWeavingJacquard)
         self.draw_node_item(weaving.FMWeaveOverlaying)
-        self.draw_node_item(weaving.FMWeaveBumping)
 
 
 class AddUtilMenu(MenuBase, bpy.types.Menu):
@@ -92,7 +91,6 @@ classes = (
     weaving.FMWeavingTwill,
     weaving.FMWeavingJacquard,
     weaving.FMWeaveOverlaying,
-    weaving.FMWeaveBumping,
     samples.BrowseLibraryOp,
     samples.ImportMaterialOp,
     templates.AddTemplateOp,
@@ -107,6 +105,7 @@ def register():
         bpy.utils.register_class(cls)
     bpy.types.NODE_MT_add.append(extend_add_menu)
     samples.register()
+
 
 def unregister():
     for cls in classes:

@@ -96,13 +96,11 @@ class WeavingStub(TemplateBuilder):
             })
 
         bumping = self.add_node(
-            weaving.FMWeaveBumping,
+            'ShaderNodeBump',
             location=(x, -0.5 * GRID),
             inputs={
-                'scale': (scaling, 'scale'),
-                'elevation': (overlaying, 'elevation'),
-                'mask': (overlaying, 'mask'),
-                'normal': self.inputs['Normal']
+                'Height': (overlaying, 'height'),
+                'Distance': 0.01
             })
 
         if 'color' in self.outputs:
@@ -110,7 +108,7 @@ class WeavingStub(TemplateBuilder):
         if 'alpha' in self.outputs:
             self.add_link((strobing, 'alpha'), self.outputs['alpha'])
         if 'normal' in self.outputs:
-            self.add_link((bumping, 'normal'), self.outputs['normal'])
+            self.add_link((bumping, 'Normal'), self.outputs['normal'])
 
 
 class AddTemplateOp(bpy.types.Operator):
