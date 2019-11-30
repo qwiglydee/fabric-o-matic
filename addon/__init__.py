@@ -31,8 +31,6 @@ class AddNodeMenu(MenuBase, bpy.types.Menu):
     def draw(self, _context):
         self.draw_node_item(weaving.FMWeaveScaling)
         self.draw_node_item(weaving.FMWeaveStrobing)
-        self.draw_node_item(weaving.FMWeaveStrobingBulged)
-        self.draw_node_item(weaving.FMWeaveProfiling)
         self.draw_node_item(weaving.FMWeavingPlain)
         self.draw_node_item(weaving.FMWeavingTwill)
         self.draw_node_item(weaving.FMWeavingJacquard)
@@ -51,6 +49,9 @@ class AddUtilMenu(MenuBase, bpy.types.Menu):
         self.draw_node_item(utils.FMmixfloats)
         self.draw_node_item(utils.FMmixvalues)
         self.draw_node_item(utils.FMfmodulo)
+        self.draw_node_item(weaving.FMWeaveBulging)
+        self.draw_node_item(weaving.FMWeaveProfiling)
+        self.draw_node_item(weaving.FMWeaveMasking)
         self.draw_node_item(weaving.FMWeavePatternSampling)
         self.draw_node_item(weaving.FMWeavePatternInterpolating)
 
@@ -61,12 +62,12 @@ class AddMenu(MenuBase, bpy.types.Menu):
 
     def draw(self, _context):
         layout = self.layout
-        layout.menu(AddUtilMenu.bl_idname)
-        layout.menu(AddNodeMenu.bl_idname)
+        layout.operator(samples.BrowseLibraryOp.bl_idname, text="Browse library...")
         for k in templates.AddTemplateOp.TEMPLATES.keys():
             op = layout.operator(templates.AddTemplateOp.bl_idname, text=k)
             op.template = k
-        layout.operator(samples.BrowseLibraryOp.bl_idname, text="Browse library...")
+        layout.menu(AddNodeMenu.bl_idname)
+        layout.menu(AddUtilMenu.bl_idname)
 
 
 def extend_add_menu(self, _context):
@@ -82,8 +83,8 @@ classes = (
     utils.FMcircle,
     utils.FMstripes,
     weaving.FMWeaveScaling,
-    weaving.FMWeaveStrobingBulged,
     weaving.FMWeaveStrobing,
+    weaving.FMWeaveBulging,
     weaving.FMWeaveProfiling,
     weaving.FMWeavePatternSampling,
     weaving.FMWeavePatternInterpolating,
@@ -91,6 +92,7 @@ classes = (
     weaving.FMWeavingTwill,
     weaving.FMWeavingJacquard,
     weaving.FMWeaveOverlaying,
+    weaving.FMWeaveMasking,
     samples.BrowseLibraryOp,
     samples.ImportMaterialOp,
     templates.AddTemplateOp,

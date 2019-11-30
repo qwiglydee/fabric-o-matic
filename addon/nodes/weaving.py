@@ -112,52 +112,12 @@ class FMWeaveScaling(ShaderNodeBase):
         layout.prop(self, 'balanced')
 
 
-class FMWeaveStrobingMixin(ShaderNodeBase):
-    def add_striping(self, xyz, w_wrp, w_wft):
-        stripes_wrp = self.add_node(
-            FMstripes,
-            name='wrp_stripes',
-            inputs={
-                't': (xyz, 'X'),
-                'period': 1.0,
-                'thickness': w_wrp
-            })
-
-        stripes_wft = self.add_node(
-            FMstripes,
-            name='wrp_stripes',
-            inputs={
-                't': (xyz, 'Y'),
-                'period': 1.0,
-                'thickness': w_wft
-            })
-
-        strobes = self.add_col(
-            (stripes_wft, 'strobe'),
-            (stripes_wrp, 'strobe'))
-
-        profiles = self.add_col(
-            (stripes_wft, 'profile'),
-            (stripes_wrp, 'profile'))
-
-        mask = self.add_node('ShaderNodeSeparateHSV', inputs={0: strobes})
-
-        self.add_link(strobes, ('output', 'strobes'))
-        self.add_link(profiles, ('output', 'profiles'))
-        self.add_link((mask, 'V'), ('output', 'alpha'))
-
-    def draw_buttons(self, _context, layout):
-        layout.prop(self, 'balanced')
-
-
-class FMWeaveStrobing(FMWeaveStrobingMixin, ShaderNodeBase):
+class FMWeaveStrobing(ShaderNodeBase):
     """Generating periodic stripes for warp and weft.
 
     Options:
         balanced
             Use the same thickness for warp and weft scaling
-        soft alpha
-            Generate smooth alpha mask instead of binary
 
     Inputs:
         vector
@@ -212,7 +172,37 @@ class FMWeaveStrobing(FMWeaveStrobingMixin, ShaderNodeBase):
         w_wrp = self.add_node('NodeReroute', name='th_wrp')
         w_wft = self.add_node('NodeReroute', name='th_wft')
 
-        self.add_striping(xyz, w_wrp, w_wft)
+        stripes_wrp = self.add_node(
+            FMstripes,
+            name='wrp_stripes',
+            inputs={
+                't': (xyz, 'X'),
+                'period': 1.0,
+                'thickness': w_wrp
+            })
+
+        stripes_wft = self.add_node(
+            FMstripes,
+            name='wrp_stripes',
+            inputs={
+                't': (xyz, 'Y'),
+                'period': 1.0,
+                'thickness': w_wft
+            })
+
+        strobes = self.add_col(
+            (stripes_wft, 'strobe'),
+            (stripes_wrp, 'strobe'))
+
+        profiles = self.add_col(
+            (stripes_wft, 'profile'),
+            (stripes_wrp, 'profile'))
+
+        mask = self.add_node('ShaderNodeSeparateHSV', inputs={0: strobes})
+
+        self.add_link(strobes, ('output', 'strobes'))
+        self.add_link(profiles, ('output', 'profiles'))
+        self.add_link((mask, 'V'), ('output', 'alpha'))
 
     def tweak_balance(self):
         self.inputs['thickness'].enabled = self.balanced
@@ -225,27 +215,30 @@ class FMWeaveStrobing(FMWeaveStrobingMixin, ShaderNodeBase):
             self.add_link(('input', 'warp thickness'), 'th_wrp')
             self.add_link(('input', 'weft thickness'), 'th_wft')
 
+    def draw_buttons(self, _context, layout):
+        layout.prop(self, 'balanced')
 
-class FMWeaveStrobingBulged(FMWeaveStrobingMixin, ShaderNodeBase):
-    """Generating bulged stripes.
 
-    The stripes have increased with in the middle (on facing side).
+class FMWeaveBulging(ShaderNodeBase):
+    """Thickness bulging
 
-    It simulates fluffing of yarn floats.
+    Makes stripes thicker on face side, proportional to elevation.
 
     Inputs:
-        vector
-            UV vector
         waves
             Map of stripes elevation (from some `weaving` node)
-        min thickness
-            Minimal thickness/width, as on back side
-        max thickness
-            Maximal thickness/width, as on top of front side
+        thickness
+            Base thickness/width
+        shrinking
+            Factor of shrinking on back side
+
+    Outputs:
+        thickness
+            Resulting thickness
     """
 
-    bl_idname = "fabricomatic.weave_strobing_bulged"
-    bl_label = "weave bulged strobing"
+    bl_idname = "fabricomatic.weave_bulging"
+    bl_label = "weave bulging"
 
     volatile = True
 
@@ -257,12 +250,12 @@ class FMWeaveStrobingBulged(FMWeaveStrobingMixin, ShaderNodeBase):
 
     def init(self, context):
         super().init(context)
-        self.inputs['min thickness'].default_value = 0.5
-        self.inputs['max thickness'].default_value = 0.75
-        self.inputs['min warp thickness'].default_value = 0.5
-        self.inputs['max warp thickness'].default_value = 0.75
-        self.inputs['min weft thickness'].default_value = 0.5
-        self.inputs['max weft thickness'].default_value = 0.75
+        self.inputs['thickness'].default_value = 0.5
+        self.inputs['warp thickness'].default_value = 0.5
+        self.inputs['weft thickness'].default_value = 0.5
+        self.inputs['shrinking'].default_value = 0.5
+        self.inputs['warp shrinking'].default_value = 0.5
+        self.inputs['weft shrinking'].default_value = 0.5
         self.tweak_balance()
 
     def copy(self, node):
@@ -270,25 +263,26 @@ class FMWeaveStrobingBulged(FMWeaveStrobingMixin, ShaderNodeBase):
         self.balanced = node.balanced
 
     def build_tree(self):
-        self.add_input('NodeSocketVector', 'vector')
         self.add_input('NodeSocketColor', 'waves')
 
-        self.add_input('NodeSocketFloat', 'min thickness', min_value=0, max_value=1.0)
-        self.add_input('NodeSocketFloat', 'max thickness', min_value=0, max_value=1.0)
-        self.add_input('NodeSocketFloat', 'min warp thickness', min_value=0, max_value=1.0)
-        self.add_input('NodeSocketFloat', 'max warp thickness', min_value=0, max_value=1.0)
-        self.add_input('NodeSocketFloat', 'min weft thickness', min_value=0, max_value=1.0)
-        self.add_input('NodeSocketFloat', 'max weft thickness', min_value=0, max_value=1.0)
+        self.add_input('NodeSocketFloat', 'thickness', min_value=0, max_value=1.0)
+        self.add_input('NodeSocketFloat', 'warp thickness', min_value=0, max_value=1.0)
+        self.add_input('NodeSocketFloat', 'weft thickness', min_value=0, max_value=1.0)
+        self.add_input('NodeSocketFloat', 'shrinking', min_value=0, max_value=1.0)
+        self.add_input('NodeSocketFloat', 'warp shrinking', min_value=0, max_value=1.0)
+        self.add_input('NodeSocketFloat', 'weft shrinking', min_value=0, max_value=1.0)
 
-        self.add_output('NodeSocketColor', 'strobes')
-        self.add_output('NodeSocketColor', 'profiles')
-        self.add_output('NodeSocketFloat', 'alpha')
+        self.add_output('NodeSocketFloat', 'warp thickness')
+        self.add_output('NodeSocketFloat', 'weft thickness')
 
         # rerouted from tweak_balanced
-        min_wrp = self.add_node('NodeReroute', name='min_wrp')
-        min_wft = self.add_node('NodeReroute', name='min_wft')
         max_wrp = self.add_node('NodeReroute', name='max_wrp')
         max_wft = self.add_node('NodeReroute', name='max_wft')
+        fac_wrp = self.add_node('NodeReroute', name='fac_wrp')
+        fac_wft = self.add_node('NodeReroute', name='fac_wft')
+
+        min_wrp = self.add_math('MULTIPLY', max_wrp, fac_wrp)
+        min_wft = self.add_math('MULTIPLY', max_wft, fac_wft)
 
         factor = self.add_mix(
             'MULTIPLY',
@@ -300,7 +294,7 @@ class FMWeaveStrobingBulged(FMWeaveStrobingMixin, ShaderNodeBase):
 
         factor_rgb = self.add_rgb(factor)
 
-        w_wrp = self.add_node(
+        th_wrp = self.add_node(
             'ShaderNodeMapRange',
             inputs={
                 'Value': (factor_rgb, 'G'),
@@ -308,7 +302,7 @@ class FMWeaveStrobingBulged(FMWeaveStrobingMixin, ShaderNodeBase):
                 'To Max': max_wrp
             })
 
-        w_wft = self.add_node(
+        th_wft = self.add_node(
             'ShaderNodeMapRange',
             inputs={
                 'Value': (factor_rgb, 'R'),
@@ -316,27 +310,29 @@ class FMWeaveStrobingBulged(FMWeaveStrobingMixin, ShaderNodeBase):
                 'To Max': max_wft
             })
 
-        xyz = self.add_xyz(('input', 'vector'))
-
-        self.add_striping(xyz, w_wrp, w_wft)
+        self.add_link(th_wrp, ('output', 'warp thickness'))
+        self.add_link(th_wft, ('output', 'weft thickness'))
 
     def tweak_balance(self):
-        self.inputs['min thickness'].enabled = self.balanced
-        self.inputs['max thickness'].enabled = self.balanced
-        self.inputs['min warp thickness'].enabled = not self.balanced
-        self.inputs['max warp thickness'].enabled = not self.balanced
-        self.inputs['min weft thickness'].enabled = not self.balanced
-        self.inputs['max weft thickness'].enabled = not self.balanced
+        self.inputs['thickness'].enabled = self.balanced
+        self.inputs['shrinking'].enabled = self.balanced
+        self.inputs['warp thickness'].enabled = not self.balanced
+        self.inputs['warp shrinking'].enabled = not self.balanced
+        self.inputs['weft thickness'].enabled = not self.balanced
+        self.inputs['weft shrinking'].enabled = not self.balanced
         if self.balanced:
-            self.add_link(('input', 'min thickness'), 'min_wrp')
-            self.add_link(('input', 'min thickness'), 'min_wft')
-            self.add_link(('input', 'max thickness'), 'max_wrp')
-            self.add_link(('input', 'max thickness'), 'max_wft')
+            self.add_link(('input', 'thickness'), 'max_wrp')
+            self.add_link(('input', 'thickness'), 'max_wft')
+            self.add_link(('input', 'shrinking'), 'fac_wrp')
+            self.add_link(('input', 'shrinking'), 'fac_wft')
         else:
-            self.add_link(('input', 'min warp thickness'), 'min_wrp')
-            self.add_link(('input', 'min weft thickness'), 'min_wft')
-            self.add_link(('input', 'max warp thickness'), 'max_wrp')
-            self.add_link(('input', 'max weft thickness'), 'max_wft')
+            self.add_link(('input', 'warp thickness'), 'max_wrp')
+            self.add_link(('input', 'weft thickness'), 'max_wft')
+            self.add_link(('input', 'warp shrinking'), 'fac_wrp')
+            self.add_link(('input', 'weft shrinking'), 'fac_wft')
+
+    def draw_buttons(self, _context, layout):
+        layout.prop(self, 'balanced')
 
 
 class FMWeaveProfiling(ShaderNodeBase):
@@ -587,13 +583,8 @@ class FMWeaveOverlaying(ShaderNodeBase):
             profiles,
             name='height')
 
-        height_rgb = self.add_rgb(height)
+        mask = self.add_node(FMWeaveMasking, inputs={0: height})
         height_hsv = self.add_node('ShaderNodeSeparateHSV', inputs={0: height}, name='height_hsv')
-
-        mask = self.add_col(
-            self.add_math('GREATER_THAN', (height_rgb, 'R'), (height_rgb, 'G')),
-            self.add_math('GREATER_THAN', (height_rgb, 'G'), (height_rgb, 'R')),
-            name='mask')
 
         self.add_link(mask, ('output', 'mask'))
         self.add_link(height, ('output', 'elevation'))
@@ -635,6 +626,23 @@ class FMWeaveOverlaying(ShaderNodeBase):
         layout.prop(self, 'balanced')
         layout.prop(self, 'stiffnessful')
         # layout.prop(self, 'softmask')
+
+
+class FMWeaveMasking(ShaderNodeBase):
+    """Creating thread mask from their elevations"""
+    bl_idname = "fabricomatic.weave_masking"
+    bl_label = "weave masking"
+
+    def build_tree(self):
+        self.add_input('NodeSocketColor', 'elevation')
+        self.add_output('NodeSocketColor', 'mask')
+
+        height_rgb = self.add_rgb(('input', 'elevation'))
+        mask = self.add_col(
+            self.add_math('GREATER_THAN', (height_rgb, 'R'), (height_rgb, 'G')),
+            self.add_math('GREATER_THAN', (height_rgb, 'G'), (height_rgb, 'R')),
+            name='mask')
+        self.add_link(mask, ('output', 'mask'))
 
 
 class FMWeavePatternSampling(ShaderNodeBase):
