@@ -11,7 +11,7 @@ The main concern is to model fabric structure and to provide maximal procedural 
 
 # Installation
 
-Download file `addon-blablabla*` from 'Releases' section and use 'install' command in Blender.
+Download file `fabricomatic_*.zip` file from 'Releases' section and use 'install' command in Blender.
 
 Unless failed, it will extend 'Add' menu of shader node editor.
 
