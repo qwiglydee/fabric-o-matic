@@ -1,0 +1,517 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Weaving nodes &mdash; fabric-o-matic 0.1-beta documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Utility nodes" href="utils.html" />
+    <link rel="prev" title="fabric-o-matic’s nodes documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> fabric-o-matic
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Weaving nodes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utility nodes</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">fabric-o-matic</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Weaving nodes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/weaving.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="weaving-nodes">
+<h1>Weaving nodes<a class="headerlink" href="#weaving-nodes" title="Permalink to this headline">¶</a></h1>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeaveScaling" title="addon.nodes.weaving.FMWeaveScaling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeaveScaling</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Dividing texture space.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeaveStrobing" title="addon.nodes.weaving.FMWeaveStrobing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeaveStrobing</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Generating periodic stripes for warp and weft.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeaveBulging" title="addon.nodes.weaving.FMWeaveBulging"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeaveBulging</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Thickness bulging</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeaveProfiling" title="addon.nodes.weaving.FMWeaveProfiling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeaveProfiling</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Converting triangle profile to decent shape.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeavePatternSampling" title="addon.nodes.weaving.FMWeavePatternSampling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeavePatternSampling</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Generating coordinates for pattern sampling.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeavePatternInterpolating" title="addon.nodes.weaving.FMWeavePatternInterpolating"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeavePatternInterpolating</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Interpolating sampled pattern.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeavingPlain" title="addon.nodes.weaving.FMWeavingPlain"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeavingPlain</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Plain weaving.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeavingTwill" title="addon.nodes.weaving.FMWeavingTwill"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeavingTwill</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Twill weaving</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeavingJacquard" title="addon.nodes.weaving.FMWeavingJacquard"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeavingJacquard</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Jacquard weaving.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeaveOverlaying" title="addon.nodes.weaving.FMWeaveOverlaying"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeaveOverlaying</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Combining and adjusting maps.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#addon.nodes.weaving.FMWeaveMasking" title="addon.nodes.weaving.FMWeaveMasking"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FMWeaveMasking</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Creating thread mask from their elevations</p></td>
+</tr>
+</tbody>
+</table>
+<span class="target" id="module-addon.nodes.weaving"></span><p>The nodes in this module generate stripes of woven fabric.
+Warp stripes go along V(Y) axis. Weft stripes go along U(X) axis.</p>
+<p>Resulting values are encoded as colors/images
+with R channel corresponding to weft and G channel corresponding to warp.
+The values are not generally restricted to range 0..1 and any operations could be applied to them via <cite>MixRGB</cite> node.</p>
+<p>All the nodes suppose texture space to be divided into weaving cells, so that each cell contains single cross.
+The cells has texture coordinates in range <code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">+</span> <span class="pre">0.0</span> <span class="pre">..</span> <span class="pre">n</span> <span class="pre">+</span> <span class="pre">1.0</span></code></p>
+<p>The strobing nodes place stripes in the middle of each cell,
+so that center of each stripe has coordinate <code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">+</span> <span class="pre">0.5</span></code>.</p>
+<p>The weaving nodes generate elevation waves in range <code class="docutils literal notranslate"><span class="pre">-1.0</span> <span class="pre">..</span> <span class="pre">+1.0</span></code>
+with -1.0 indicating back side and +1.0 face side.
+Elevation changes sinusoidally starting and ending at centers of neighbour cells.
+Weaving nodes are unaware of stripes width and generate cell-wide waves.</p>
+<p>When generating very thick stripes it may result in some visible intersections.
+This could be fixed with <code class="docutils literal notranslate"><span class="pre">RGBCurves</span></code> applied to waves to make more steep,
+but value range -1 to +1 shoudle be preserved.
+And this may produce other more ugly artefacts, not yet fixed.</p>
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeaveScaling">
+<em class="property">class </em><code class="sig-name descname">FMWeaveScaling</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeaveScaling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dividing texture space.</p>
+<p>Scales vector to form weaving cells according to desired thread count.
+Basically, a wrapper around few simple vector math operations.</p>
+<dl class="simple">
+<dt>Options:</dt><dd><dl class="simple">
+<dt>balanced</dt><dd><p>Use the same thread count for warp and weft.</p>
+</dd>
+</dl>
+</dd>
+<dt>Inputs:</dt><dd><dl class="simple">
+<dt>vector</dt><dd><p>Original texture vector.</p>
+</dd>
+<dt>thread count</dt><dd><p>Desired number of stripes per original texture unit.</p>
+</dd>
+</dl>
+</dd>
+<dt>Outputs:</dt><dd><dl class="simple">
+<dt>vector</dt><dd><p>Scaled vector.</p>
+</dd>
+<dt>scale</dt><dd><p>Resulting size of weaving cells (relative to original texture unit). I don’t know what is it for.</p>
+</dd>
+<dt>snapped</dt><dd><p>Original vector snapped to weaving cells.
+Using the vector for some texture like noise will produce same value within each cell.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeaveStrobing">
+<em class="property">class </em><code class="sig-name descname">FMWeaveStrobing</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeaveStrobing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generating periodic stripes for warp and weft.</p>
+<dl class="simple">
+<dt>Options:</dt><dd><dl class="simple">
+<dt>balanced</dt><dd><p>Use the same thickness for warp and weft scaling</p>
+</dd>
+</dl>
+</dd>
+<dt>Inputs:</dt><dd><dl class="simple">
+<dt>vector</dt><dd><p>UV vector</p>
+</dd>
+<dt>thickness</dt><dd><p>Relative width of stripes (ratio of fill to gaps, with 1 = cover full area)</p>
+</dd>
+</dl>
+</dd>
+<dt>Outputs:</dt><dd><dl class="simple">
+<dt>strobes</dt><dd><p>Boolean mask indicating presence of warp or weft</p>
+</dd>
+<dt>alpha</dt><dd><p>Boolean mask of stripes/gaps</p>
+</dd>
+<dt>profiles</dt><dd><p>Triangle-shaped bump elevation of each stripe.
+It has value 1.0 in the middle of stripes, and 0.0 at its edges.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeaveBulging">
+<em class="property">class </em><code class="sig-name descname">FMWeaveBulging</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeaveBulging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thickness bulging</p>
+<p>Makes stripes thicker on face side, proportional to elevation.</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><dl class="simple">
+<dt>waves</dt><dd><p>Map of stripes elevation (from some <cite>weaving</cite> node)</p>
+</dd>
+<dt>thickness</dt><dd><p>Base thickness/width</p>
+</dd>
+<dt>shrinking</dt><dd><p>Factor of shrinking on back side</p>
+</dd>
+</dl>
+</dd>
+<dt>Outputs:</dt><dd><dl class="simple">
+<dt>thickness</dt><dd><p>Resulting thickness</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeaveProfiling">
+<em class="property">class </em><code class="sig-name descname">FMWeaveProfiling</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeaveProfiling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converting triangle profile to decent shape.</p>
+<p>Simply maps values 0..1 to some predefined curve.
+It can be done with curves, but it’s hard to make them smooth at edges.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeaveOverlaying">
+<em class="property">class </em><code class="sig-name descname">FMWeaveOverlaying</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeaveOverlaying" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combining and adjusting maps.</p>
+<p>The elevation and profiles are scaled according to provided thickness.
+Waves of stripes are adjusted, so that they lay precisely on top of each other.</p>
+<p>Stiffness makes corresponding stripes more straight and less waving.</p>
+<p>It simulates tension of yarn in loom.
+Usually it is warp yarn straighened in loom’s frame,
+but some weavers beat weft yarn so hard that it becomes the other way around.</p>
+<dl class="simple">
+<dt>Options:</dt><dd><dl class="simple">
+<dt>balanced</dt><dd><p>Use the same thickness for warp and weft.</p>
+</dd>
+<dt>stifness</dt><dd><p>Apply stiffness. Applying it to both warp and weft will obviously compensate the effect.</p>
+</dd>
+</dl>
+</dd>
+<dt>Inputs:</dt><dd><dl class="simple">
+<dt>strobes</dt><dd><p>Boolean map of stripes.</p>
+</dd>
+<dt>profiles</dt><dd><p>Height map of stripes’ profiles.</p>
+</dd>
+<dt>waves</dt><dd><p>Height map of stripes’ waves. Should be in range <code class="docutils literal notranslate"><span class="pre">-1</span> <span class="pre">..</span> <span class="pre">+1</span></code></p>
+</dd>
+<dt>thickness</dt><dd><p>Height of stripes (kinda radius of semi-circular shape).</p>
+</dd>
+<dt>stiffness</dt><dd><p>Stiffness of corresponding stripes (1.0 = no waving).</p>
+</dd>
+</dl>
+</dd>
+<dt>Outputs:</dt><dd><dl class="simple">
+<dt>evalation</dt><dd><p>Combined elevation of waves and profiles separately for each channel.</p>
+</dd>
+<dt>mask</dt><dd><p>Map indicating which kind of stripe is on face side.</p>
+</dd>
+<dt>height</dt><dd><p>Resulting height for bump mapping.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeaveMasking">
+<em class="property">class </em><code class="sig-name descname">FMWeaveMasking</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeaveMasking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creating thread mask from their elevations</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeavePatternSampling">
+<em class="property">class </em><code class="sig-name descname">FMWeavePatternSampling</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeavePatternSampling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generating coordinates for pattern sampling.</p>
+<p>Coordinates are snapped so that each pixel of pattern corresponds to cell of weaving.
+The vectors are shifted to point to neighbouring pixels/cells.</p>
+<p>The vectors should be fed to texture node and the resulting color routed to
+<cite>FMWeavePatternInterpolating</cite> to produce smooth waves.</p>
+<dl class="simple">
+<dt>Parameters:</dt><dd><dl class="simple">
+<dt>image</dt><dd><p>The pattern image. Should be black-n-white.</p>
+</dd>
+</dl>
+</dd>
+<dt>Inputs:</dt><dd><dl class="simple">
+<dt>vector</dt><dd><p>UV vector</p>
+</dd>
+<dt>width</dt><dd><p>width of image in pixels.</p>
+</dd>
+<dt>height</dt><dd><p>height of image in pixels.</p>
+</dd>
+</dl>
+</dd>
+<dt>Outputs:</dt><dd><p>Vectors shifted left/right up/down, and snapped to cells or half-cells.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeavePatternInterpolating">
+<em class="property">class </em><code class="sig-name descname">FMWeavePatternInterpolating</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeavePatternInterpolating" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolating sampled pattern.</p>
+<p>Interpolates values from heighbour cells to form smooth transitions.</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><dl class="simple">
+<dt>vector</dt><dd><p>original, unsnapped vector</p>
+</dd>
+<dt>value l/r/u/d</dt><dd><p>values for neighbouring cells</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeavingPlain">
+<em class="property">class </em><code class="sig-name descname">FMWeavingPlain</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeavingPlain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plain weaving.</p>
+<p>Generating simple checkerboard-like interlacing.</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><dl class="simple">
+<dt>vector</dt><dd><p>UV vector</p>
+</dd>
+</dl>
+</dd>
+<dt>Outputs:</dt><dd><p>waves</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeavingTwill">
+<em class="property">class </em><code class="sig-name descname">FMWeavingTwill</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeavingTwill" title="Permalink to this definition">¶</a></dt>
+<dd><p>Twill weaving</p>
+<p>Generating interlacing according to twill scheme specifying how weft yarn goes between warp yarns.</p>
+<p>This covers all kinds of twill and satin weaving. Especially if to change parametyers dynamically.</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><dl class="simple">
+<dt>vector</dt><dd><p>UV vector</p>
+</dd>
+<dt>above</dt><dd><p>number of cells a weft stripe is on face side (above warp)</p>
+</dd>
+<dt>below</dt><dd><p>number of cells a weft stripe is on back side (below warp)</p>
+</dd>
+<dt>shift</dt><dd><p>number of cells to shift pattern every subsequent row</p>
+</dd>
+</dl>
+</dd>
+<dt>Outputs:</dt><dd><dl class="simple">
+<dt>waves</dt><dd><p>map of stripe elevation, in range -1.0..+1.0</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="addon.nodes.weaving.FMWeavingJacquard">
+<em class="property">class </em><code class="sig-name descname">FMWeavingJacquard</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#addon.nodes.weaving.FMWeavingJacquard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Jacquard weaving.</p>
+<p>Generating interlacing according to given pattern image (corresponding to “weaving draft” in weaving reality).
+White pixels indicate weft-facing cells, black pixels indicate warp-facing cells.</p>
+<dl class="simple">
+<dt>Paramaters:</dt><dd><dl class="simple">
+<dt>pattern</dt><dd><p>a black-n-white image specifying weaving pattern.</p>
+</dd>
+</dl>
+</dd>
+<dt>Inputs:</dt><dd><dl class="simple">
+<dt>vector</dt><dd><p>UV vector.</p>
+</dd>
+</dl>
+</dd>
+<dt>Outputs:</dt><dd><dl class="simple">
+<dt>waves</dt><dd><p>map of stripe elevation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="utils.html" class="btn btn-neutral float-right" title="Utility nodes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="fabric-o-matic’s nodes documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, qwiglydee@gmail.com
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
