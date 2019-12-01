@@ -281,8 +281,8 @@ class FMWeaveBulging(ShaderNodeBase):
         fac_wrp = self.add_node('NodeReroute', name='fac_wrp')
         fac_wft = self.add_node('NodeReroute', name='fac_wft')
 
-        min_wrp = self.add_math('MULTIPLY', max_wrp, fac_wrp)
-        min_wft = self.add_math('MULTIPLY', max_wft, fac_wft)
+        min_wrp = self.add_math('MULTIPLY', max_wrp, self.add_math('SUBTRACT', 1.0, fac_wrp))
+        min_wft = self.add_math('MULTIPLY', max_wft, self.add_math('SUBTRACT', 1.0, fac_wft))
 
         factor = self.add_mix(
             'MULTIPLY',
