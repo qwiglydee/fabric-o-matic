@@ -1,7 +1,7 @@
 __pychache__/
 .*
 !/.gitignore
-!/docs/.nojekyll
+!.nojekyll
 *.blend[0-9]
 
 /build/
