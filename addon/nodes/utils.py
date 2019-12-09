@@ -33,10 +33,10 @@ class FMmixvalues(ShaderNodeBase):
 
     def build_tree(self):
         self.add_input('NodeSocketColor', 'mask')
-        self.add_input('NodeSocketFloat', 'weft value')
         self.add_input('NodeSocketFloat', 'warp value')
-        self.add_input('NodeSocketColor', 'weft color')
+        self.add_input('NodeSocketFloat', 'weft value')
         self.add_input('NodeSocketColor', 'warp color')
+        self.add_input('NodeSocketColor', 'weft color')
 
         self.add_output('NodeSocketFloat', 'value')
         self.add_output('NodeSocketColor', 'color')
