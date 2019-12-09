@@ -132,7 +132,6 @@ class ShaderNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
             self.inputs[k].default_value = i.default_value
 
     def init_tree(self):
-        # print("initializing",  self)
         name = "." + self.__class__.__name__
         if self.volatile:
             name += ".000"
@@ -148,6 +147,5 @@ class ShaderNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
         self.free_tree()
 
     def free_tree(self):
-        # print("releasing",  self)
-        if self.volatile or self.node_tree.users == 1:
+        if self.node_tree.users == 1:
             bpy.data.node_groups.remove(self.node_tree)
