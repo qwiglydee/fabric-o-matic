@@ -1,45 +1,58 @@
 """Utilities sto implrt materials from samples library"""
 
-import os
+from pathlib import Path
 
 import bpy
+import bpy.utils.previews
 
 
 class Library:
-    BLENDFILE = os.path.join(os.path.dirname(__file__), "samples.blend")
-    enumerated: list = None
-    previews: bpy.utils.previews.ImagePreviewCollection = None
+    def __init__(self, path):
+        self.blendfile = path / "samples.blend"
+        self.imagedir = path / "previews" / "samples"
+        self.__previews = None
+        self.__materials_enum = None
 
-    @staticmethod
-    def enum_materials(_1, context):
-        if Library.enumerated is None:
-            wm = context.window_manager
-            materials = []
-            with bpy.data.libraries.load(Library.BLENDFILE) as (src, dst):
-                materials.extend(src.materials)
-                dst.images = [f"Preview: {name}" for name in src.materials]
-            wm.progress_begin(0, len(materials))
-            i = 0
-            Library.enumerated = []
-            for mat, img in zip(materials, dst.images):
-                if not mat or not img:
-                    continue
-                i += 1
-                preview = Library.previews.new(mat)
-                preview.image_size = img.size
-                preview.image_pixels_float[:] = img.pixels
-                Library.enumerated.append((mat, mat, "", preview.icon_id, i))
-                bpy.data.images.remove(img)
-                wm.progress_update(i)
-            wm.progress_end()
-        return Library.enumerated
+    def list_materials(self):
+        materials = []
+        with bpy.data.libraries.load(str(self.blendfile)) as (src, dst):
+            materials.extend(filter(lambda m: '.' not in m, src.materials))
+        return materials
 
-    @staticmethod
-    def import_material(material_name):
-        with bpy.data.libraries.load(Library.BLENDFILE) as (src, dst):
-            dst.materials = [material_name]
+    def load_previews(self):
+        self.__previews = bpy.utils.previews.new()
+        for file in self.imagedir.iterdir():
+            img = self.__previews.load(file.name, str(file), 'IMAGE')
+            # print("loaded", file, img.icon_size[:], img.image_size[:])
+
+    def free_previews(self):
+        bpy.utils.previews.remove(self.__previews)
+        self.__previews = None
+        self.__materials_enum = None
+
+    def enum_materials(self):
+        if self.__materials_enum is None:
+            self.load_previews()
+            previews = self.__previews
+            materials = self.list_materials()
+
+            def preview(m):
+                img = m + ".png"
+                if img in previews:
+                    return previews[img].icon_id
+
+            self.__materials_enum = [(mat, mat, "", preview(mat), i) for i, mat in enumerate(materials)]
+
+        return self.__materials_enum
+
+    def import_material(self, name):
+        with bpy.data.libraries.load(str(self.blendfile)) as (src, dst):
+            dst.materials = [name]
         mat = dst.materials[0]
         return mat
+
+
+library = Library(Path(__file__).parent)
 
 
 class ImportMaterialOp(bpy.types.Operator):
@@ -51,16 +64,16 @@ class ImportMaterialOp(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.space_data.type == 'NODE_EDITOR'
+        return context.area.ui_type == 'ShaderNodeTree'
 
     def execute(self, context):
         if not self.properties.is_property_set('material'):
-            self.report('ERROR_INVALID_INPUT', "No material specified")
-            return {'CANCELED'}
-        mat = Library.import_material(self.material)
+            self.report({'ERROR_INVALID_INPUT'}, "No material specified")
+            return {'CANCELLED'}
+        mat = library.import_material(self.material)
         if mat is None:
-            self.report('ERROR_INVALID_INPUT', f"Failed to import '{self.material}'")
-            return {'CANCELED'}
+            self.report({'ERROR_INVALID_INPUT'}, f"Failed to import '{self.material}'")
+            return {'CANCELLED'}
         obj = context.active_object
         if len(obj.material_slots) == 0:
             bpy.ops.object.material_slot_add()
@@ -72,18 +85,21 @@ class BrowseLibraryOp(ImportMaterialOp):
     bl_idname = 'fabricomatic.lib_browse'
     bl_label = "Browse library"
 
-    material: bpy.props.EnumProperty(items=Library.enum_materials)
+    material: bpy.props.EnumProperty(items=lambda s, c: library.enum_materials())
 
     def invoke(self, context, _event):
+        self.material = 'Plain'
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, _context):
-        self.layout.template_icon_view(self, 'material', show_labels=True, scale=16.0, scale_popup=8.0)
+        self.layout.template_icon_view(self, 'material', show_labels=True, scale=10)
+        self.layout.prop(self, 'material')
 
 
 def register():
-    Library.previews = bpy.utils.previews.new()
+    # library.load_previews()
+    pass
 
 
 def unregister():
-    bpy.utils.previews.remove(Library.previews)
+    library.free_previews()

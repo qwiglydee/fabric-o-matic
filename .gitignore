@@ -5,3 +5,4 @@ __pychache__/
 *.blend[0-9]
 
 /build/
+/addon/previews/
