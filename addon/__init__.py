@@ -49,8 +49,8 @@ class AddUtilMenu(MenuBase, bpy.types.Menu):
         self.draw_node_item(utils.FMmixfloats)
         self.draw_node_item(utils.FMmixvalues)
         self.draw_node_item(utils.FMfmodulo)
+        self.draw_node_item(utils.FMWeaveProfiling)
         self.draw_node_item(weaving.FMWeaveBulging)
-        self.draw_node_item(weaving.FMWeaveProfiling)
         self.draw_node_item(weaving.FMWeaveMasking)
         self.draw_node_item(weaving.FMWeavePatternSampling)
         self.draw_node_item(weaving.FMWeavePatternInterpolating)
@@ -82,10 +82,10 @@ classes = (
     utils.FMcosine,
     utils.FMcircle,
     utils.FMstripes,
+    utils.FMWeaveProfiling,
     weaving.FMWeaveScaling,
     weaving.FMWeaveStrobing,
     weaving.FMWeaveBulging,
-    weaving.FMWeaveProfiling,
     weaving.FMWeavePatternSampling,
     weaving.FMWeavePatternInterpolating,
     weaving.FMWeavingPlain,

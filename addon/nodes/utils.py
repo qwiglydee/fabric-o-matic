@@ -325,3 +325,81 @@ class FMstripes(ShaderNodeBase):
 
         self.add_link(strobe, ('output', 'strobe'))
         self.add_link(triangle, ('output', 'profile'))
+
+
+class FMWeaveProfiling(ShaderNodeBase):
+    """Converting triangle profile to decent shape.
+
+    Simply maps values 0..1 to some predefined curve.
+    It can be done with curves, but it's hard to make them smooth at edges.
+
+    """
+    bl_idname = "fabricomatic.weave_profiling"
+    bl_label = "weave profiling"
+
+    volatile = True
+
+    PROFILE_SHAPES = (
+        ('NONE', 'None', "Unmodified", 0),
+        ('FLAT', 'Flat', "Flatten", 1),
+        ('ROUND', 'Round', "Semicircular profile", 2),
+        ('SINE', 'Sine', "Sine profile (full period)", 3),
+        ('HSINE', 'Halfsine', "Sine profile (half period)", 4),
+    )
+
+    profile_shape: bpy.props.EnumProperty(
+        name="Profle shape",
+        items=PROFILE_SHAPES,
+        update=lambda s, c: s.tweak_profile(),
+        default='ROUND')
+
+    def init(self, context):
+        super().init(context)
+        self.tweak_profile()
+
+    def copy(self, node):
+        super().copy(node)
+        self.profile_shape = node.profile_shape
+
+    def build_tree(self):
+        self.add_input('NodeSocketColor', 'profiles')
+        self.add_output('NodeSocketColor', 'profiles')
+
+        profiles_rgb = self.add_rgb(('input', 'profiles'))
+
+        self.add_col(
+            self.add_math('GREATER_THAN', (profiles_rgb, 'R'), 0.0),
+            self.add_math('GREATER_THAN', (profiles_rgb, 'G'), 0.0),
+            name='flat')
+
+        self.add_col(
+            self.add_node(FMcircle, inputs={'value': (profiles_rgb, 'R')}),
+            self.add_node(FMcircle, inputs={'value': (profiles_rgb, 'G')}),
+            name='round')
+
+        self.add_col(
+            self.add_node(FMcosine, inputs={'t': (profiles_rgb, 'R'), 'period': 2.0, 'shift': -0.5}),
+            self.add_node(FMcosine, inputs={'t': (profiles_rgb, 'G'), 'period': 2.0, 'shift': -0.5}),
+            name='sine')
+
+        self.add_col(
+            self.add_node(FMcosine, inputs={'t': (profiles_rgb, 'R'), 'period': 4.0, 'shift': -0.25}),
+            self.add_node(FMcosine, inputs={'t': (profiles_rgb, 'G'), 'period': 4.0, 'shift': -0.25}),
+            name='hsine')
+
+        self.add_link(('input', 'profiles'), ('output', 'profiles'))
+
+    def tweak_profile(self):
+        if self.profile_shape == 'ROUND':
+            self.add_link('round', ('output', 'profiles'))
+        elif self.profile_shape == 'SINE':
+            self.add_link('sine', ('output', 'profiles'))
+        elif self.profile_shape == 'HSINE':
+            self.add_link('hsine', ('output', 'profiles'))
+        elif self.profile_shape == 'FLAT':
+            self.add_link('flat', ('output', 'profiles'))
+        else:
+            self.add_link(('input', 'profiles'), ('output', 'profiles'))
+
+    def draw_buttons(self, _context, layout):
+        layout.prop(self, 'profile_shape', text="")

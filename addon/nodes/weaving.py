@@ -26,7 +26,7 @@ And this may produce other more ugly artefacts, not yet fixed.
 import bpy
 
 from .base import ShaderNodeBase
-from .utils import FMmixfloats, FMfmodulo, FMcosine, FMcircle, FMstripes
+from .utils import FMmixfloats, FMfmodulo, FMcosine, FMstripes, FMWeaveProfiling
 
 
 class FMWeaveScaling(ShaderNodeBase):
@@ -145,6 +145,12 @@ class FMWeaveStrobing(ShaderNodeBase):
         default=True,
         update=lambda s, c: s.tweak_balance())
 
+    profile_shape: bpy.props.EnumProperty(
+        name="Profle shape",
+        items=FMWeaveProfiling.PROFILE_SHAPES,
+        update=lambda s, c: s.tweak_profile(),
+        default='ROUND')
+
     def init(self, context):
         super().init(context)
         self.inputs['thickness'].default_value = 0.5
@@ -196,12 +202,15 @@ class FMWeaveStrobing(ShaderNodeBase):
 
         profiles = self.add_col(
             (stripes_wft, 'profile'),
-            (stripes_wrp, 'profile'))
+            (stripes_wrp, 'profile'),
+            name='profiles')
+
+        profiling = self.add_node(FMWeaveProfiling, inputs={'profiles': profiles}, name='profiling')
 
         mask = self.add_node('ShaderNodeSeparateHSV', inputs={0: strobes})
 
         self.add_link(strobes, ('output', 'strobes'))
-        self.add_link(profiles, ('output', 'profiles'))
+        self.add_link(profiling, ('output', 'profiles'))
         self.add_link((mask, 'V'), ('output', 'alpha'))
 
     def tweak_balance(self):
@@ -215,8 +224,16 @@ class FMWeaveStrobing(ShaderNodeBase):
             self.add_link(('input', 'warp thickness'), 'th_wrp')
             self.add_link(('input', 'weft thickness'), 'th_wft')
 
+    def tweak_profile(self):
+        if self.profile_shape == 'NONE':
+            self.add_link('profiles', ('output', 'profiles'))
+        else:
+            self.add_link('profiling', ('output', 'profiles'))
+            self.get_node('profiling').profile_shape = self.profile_shape
+
     def draw_buttons(self, _context, layout):
         layout.prop(self, 'balanced')
+        layout.prop(self, 'profile_shape')
 
 
 class FMWeaveBulging(ShaderNodeBase):
@@ -333,83 +350,6 @@ class FMWeaveBulging(ShaderNodeBase):
 
     def draw_buttons(self, _context, layout):
         layout.prop(self, 'balanced')
-
-
-class FMWeaveProfiling(ShaderNodeBase):
-    """Converting triangle profile to decent shape.
-
-    Simply maps values 0..1 to some predefined curve.
-    It can be done with curves, but it's hard to make them smooth at edges.
-
-    """
-    bl_idname = "fabricomatic.weave_profiling"
-    bl_label = "weave profiling"
-
-    volatile = True
-
-    PROFILE_SHAPES = (
-        ('FLAT', 'Flat', "Flatten", 0),
-        ('ROUND', 'Round', "Semicircular profile", 1),
-        ('SINE', 'Sine', "Sine profile (full period)", 3),
-        ('HSINE', 'Halfsine', "Sine profile (half period)", 4),
-    )
-
-    profile_shape: bpy.props.EnumProperty(
-        name="Profle shape",
-        items=PROFILE_SHAPES,
-        update=lambda s, c: s.tweak_profile(),
-        default='ROUND')
-
-    def init(self, context):
-        super().init(context)
-        self.tweak_profile()
-
-    def copy(self, node):
-        super().copy(node)
-        self.profile_shape = node.profile_shape
-
-    def build_tree(self):
-        self.add_input('NodeSocketColor', 'profiles')
-        self.add_output('NodeSocketColor', 'profiles')
-
-        profiles_rgb = self.add_rgb(('input', 'profiles'))
-
-        self.add_col(
-            self.add_math('GREATER_THAN', (profiles_rgb, 'R'), 0.0),
-            self.add_math('GREATER_THAN', (profiles_rgb, 'G'), 0.0),
-            name='flat')
-
-        self.add_col(
-            self.add_node(FMcircle, inputs={'value': (profiles_rgb, 'R')}),
-            self.add_node(FMcircle, inputs={'value': (profiles_rgb, 'G')}),
-            name='round')
-
-        self.add_col(
-            self.add_node(FMcosine, inputs={'t': (profiles_rgb, 'R'), 'period': 2.0, 'shift': -0.5}),
-            self.add_node(FMcosine, inputs={'t': (profiles_rgb, 'G'), 'period': 2.0, 'shift': -0.5}),
-            name='sine')
-
-        self.add_col(
-            self.add_node(FMcosine, inputs={'t': (profiles_rgb, 'R'), 'period': 4.0, 'shift': -0.25}),
-            self.add_node(FMcosine, inputs={'t': (profiles_rgb, 'G'), 'period': 4.0, 'shift': -0.25}),
-            name='hsine')
-
-        self.add_link(('input', 'profiles'), ('output', 'profiles'))
-
-    def tweak_profile(self):
-        if self.profile_shape == 'ROUND':
-            self.add_link('round', ('output', 'profiles'))
-        elif self.profile_shape == 'SINE':
-            self.add_link('sine', ('output', 'profiles'))
-        elif self.profile_shape == 'HSINE':
-            self.add_link('hsine', ('output', 'profiles'))
-        elif self.profile_shape == 'FLAT':
-            self.add_link('flat', ('output', 'profiles'))
-        else:
-            self.add_link(('input', 'profiles'), ('output', 'profiles'))
-
-    def draw_buttons(self, _context, layout):
-        layout.prop(self, 'profile_shape', text="")
 
 
 class FMWeaveOverlaying(ShaderNodeBase):
