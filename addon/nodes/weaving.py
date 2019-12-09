@@ -502,9 +502,9 @@ class FMWeaveOverlaying(ShaderNodeBase):
         self.stiffnessful = node.stiffnessful
 
     def build_tree(self):
+        self.add_input('NodeSocketColor', 'waves')
         self.add_input('NodeSocketColor', 'strobes')
         self.add_input('NodeSocketColor', 'profiles')
-        self.add_input('NodeSocketColor', 'waves')
 
         self.add_input('NodeSocketFloat', 'thickness', min_value=0.0, max_value=1.0)
         self.add_input('NodeSocketFloat', 'warp thickness', min_value=0.0, max_value=1.0)

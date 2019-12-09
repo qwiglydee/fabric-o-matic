@@ -33,10 +33,10 @@ class FMmixvalues(ShaderNodeBase):
 
     def build_tree(self):
         self.add_input('NodeSocketColor', 'mask')
-        self.add_input('NodeSocketFloat', 'value R')
-        self.add_input('NodeSocketFloat', 'value G')
-        self.add_input('NodeSocketColor', 'color R')
-        self.add_input('NodeSocketColor', 'color G')
+        self.add_input('NodeSocketFloat', 'weft value')
+        self.add_input('NodeSocketFloat', 'warp value')
+        self.add_input('NodeSocketColor', 'weft color')
+        self.add_input('NodeSocketColor', 'warp color')
 
         self.add_output('NodeSocketFloat', 'value')
         self.add_output('NodeSocketColor', 'color')
@@ -45,13 +45,13 @@ class FMmixvalues(ShaderNodeBase):
 
         val = self.add_math(
             'ADD',
-            self.add_math('MULTIPLY', ('input', 'value R'), (mask, 'R')),
-            self.add_math('MULTIPLY', ('input', 'value G'), (mask, 'G')))
+            self.add_math('MULTIPLY', ('input', 'weft value'), (mask, 'R')),
+            self.add_math('MULTIPLY', ('input', 'warp value'), (mask, 'G')))
 
         col = self.add_mix(
             'ADD',
-            self.add_mix('MIX', ('=', (0, 0, 0, 0)), ('input', 'color R'), fac=(mask, 'R')),
-            self.add_mix('MIX', ('=', (0, 0, 0, 0)), ('input', 'color G'), fac=(mask, 'G')))
+            self.add_mix('MIX', ('=', (0, 0, 0, 0)), ('input', 'weft color'), fac=(mask, 'R')),
+            self.add_mix('MIX', ('=', (0, 0, 0, 0)), ('input', 'warp color'), fac=(mask, 'G')))
 
         self.add_link(val, ('output', 'value'))
         self.add_link(col, ('output', 'color'))
@@ -61,6 +61,7 @@ class FMmixfloats(ShaderNodeBase):
     """Mixing floats with factor
 
     Very dumb node.
+    Analogous to MapRange(value=fac, to_min = value1, to_max=value2)
     """
     bl_idname = "fabricomatic.mixfloats"
     bl_label = "mixing floats"
