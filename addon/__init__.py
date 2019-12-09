@@ -70,7 +70,9 @@ class AddMenu(MenuBase, bpy.types.Menu):
         layout.menu(AddUtilMenu.bl_idname)
 
 
-def extend_add_menu(self, _context):
+def extend_add_menu(self, context):
+    if context.area.ui_type != 'ShaderNodeTree':
+        return
     self.layout.menu(AddMenu.bl_idname)
 
 
