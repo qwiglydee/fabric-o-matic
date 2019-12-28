@@ -4,6 +4,15 @@ import bpy
 class ShaderNodeBuilding:
     """Base utilities to construct node trees"""
 
+    node_tree = None
+    inputs = {}
+    outputs = {}
+
+    def init_tree(self, name):
+        self.node_tree = bpy.data.node_groups.new(name, 'ShaderNodeTree')
+        self.node_tree.nodes.new('NodeGroupInput')
+        self.node_tree.nodes.new('NodeGroupOutput')
+
     def add_input(self, kind, name, **attrs):
         isock = self.node_tree.inputs.new(kind, name)
         sock = self.inputs[name]
@@ -118,34 +127,30 @@ class ShaderNodeBuilding:
         return self.node_tree.nodes.get(name)
 
 
-class ShaderNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
-    """Base class for self-building nodes"""
-
-    volatile: bool = False
+class ShaderSharedNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
+    """Node with shared tree"""
 
     def init(self, _context):
-        self.init_tree()
-
-    def copy(self, node):
-        self.init_tree()
-        for k, i in node.inputs.items():
-            self.inputs[k].default_value = i.default_value
-
-    def init_tree(self):
         name = "." + self.__class__.__name__
-        if self.volatile:
-            name += ".000"
-        if not self.volatile and name in bpy.data.node_groups:
+        if name in bpy.data.node_groups:
             self.node_tree = bpy.data.node_groups[name]
         else:
-            self.node_tree = bpy.data.node_groups.new(name, 'ShaderNodeTree')
-            self.node_tree.nodes.new('NodeGroupInput')
-            self.node_tree.nodes.new('NodeGroupOutput')
+            self.init_tree(name)
             self.build_tree()
 
-    def free(self):
-        self.free_tree()
 
-    def free_tree(self):
-        if self.node_tree.users == 1:
-            bpy.data.node_groups.remove(self.node_tree)
+class ShaderVolatileNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
+    """Node with volatile tree"""
+
+    def init(self, _context):
+        name = "." + self.__class__.__name__ + ".000"
+        self.init_tree(name)
+        self.build_tree()
+
+    def copy(self, node):
+        self.node_tree = self.node_tree.copy()
+
+    def free(self):
+        self.node_tree.nodes.clear()
+        self.free_tree()
+    

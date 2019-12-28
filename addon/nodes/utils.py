@@ -5,10 +5,10 @@ import math
 
 import bpy
 
-from .base import ShaderNodeBase
+from .base import ShaderSharedNodeBase, ShaderVolatileNodeBase
 
 
-class FMmixvalues(ShaderNodeBase):
+class FMmixvalues(ShaderSharedNodeBase):
     """Mix values according to thread map
 
     Outputs value or color corresponding to value of thread map
@@ -27,9 +27,6 @@ class FMmixvalues(ShaderNodeBase):
     """
     bl_idname = "fabricomatic.mixvalues"
     bl_label = "mixing values"
-
-    def init(self, context):
-        super().init(context)
 
     def build_tree(self):
         self.add_input('NodeSocketColor', 'mask')
@@ -57,7 +54,7 @@ class FMmixvalues(ShaderNodeBase):
         self.add_link(col, ('output', 'color'))
 
 
-class FMmixfloats(ShaderNodeBase):
+class FMmixfloats(ShaderSharedNodeBase):
     """Mixing floats with factor
 
     Very dumb node.
@@ -65,9 +62,6 @@ class FMmixfloats(ShaderNodeBase):
     """
     bl_idname = "fabricomatic.mixfloats"
     bl_label = "mixing floats"
-
-    def init(self, context):
-        super().init(context)
 
     def build_tree(self):
         self.add_input('NodeSocketFloat', 'fac')
@@ -88,7 +82,7 @@ class FMmixfloats(ShaderNodeBase):
         self.add_link(val, ('output', 'value'))
 
 
-class FMfmodulo(ShaderNodeBase):
+class FMfmodulo(ShaderSharedNodeBase):
     """Floored division modulo
 
     Outputs positive result for negative dividents.
@@ -96,9 +90,6 @@ class FMfmodulo(ShaderNodeBase):
     """
     bl_idname = "fabricomatic.fmodulo"
     bl_label = "fmodulo"
-
-    def init(self, context):
-        super().init(context)
 
     def build_tree(self):
         self.add_input('NodeSocketFloat', 'divident')
@@ -121,7 +112,7 @@ class FMfmodulo(ShaderNodeBase):
         self.add_link(val, ('output', 'remainder'))
 
 
-class FMzigzag(ShaderNodeBase):
+class FMzigzag(ShaderSharedNodeBase):
     """Generating 1-dimentional zigzag.
 
     A triangle wave that looks like a very low-poly cosine.
@@ -131,18 +122,15 @@ class FMzigzag(ShaderNodeBase):
     bl_idname = "fabricomatic.zigzag"
     bl_label = "zigzag"
 
-    def init(self, context):
-        super().init(context)
-        self.inputs['period'].default_value = 1.0
-        self.inputs['min'].default_value = 0.0
-        self.inputs['max'].default_value = 1.0
-
     def build_tree(self):
         self.add_input('NodeSocketFloat', 't')
         self.add_input('NodeSocketFloat', 'period')
         self.add_input('NodeSocketFloat', 'shift')
         self.add_input('NodeSocketFloat', 'min')
         self.add_input('NodeSocketFloat', 'max')
+        self.inputs['period'].default_value = 1.0
+        self.inputs['min'].default_value = 0.0
+        self.inputs['max'].default_value = 1.0
 
         self.add_output('NodeSocketFloat', 'value')
 
@@ -174,7 +162,7 @@ class FMzigzag(ShaderNodeBase):
         self.add_link(out, ('output', 0))
 
 
-class FMcosine(ShaderNodeBase):
+class FMcosine(ShaderSharedNodeBase):
     """Generating 1-dimentional cosine.
 
     Just a cosine with parameters.
@@ -184,18 +172,15 @@ class FMcosine(ShaderNodeBase):
     bl_idname = "fabricomatic.cosine"
     bl_label = "cosine"
 
-    def init(self, context):
-        super().init(context)
-        self.inputs['period'].default_value = 1.0
-        self.inputs['min'].default_value = 0.0
-        self.inputs['max'].default_value = 1.0
-
     def build_tree(self):
         self.add_input('NodeSocketFloat', 't')
         self.add_input('NodeSocketFloat', 'period')
         self.add_input('NodeSocketFloat', 'shift')
         self.add_input('NodeSocketFloat', 'min')
         self.add_input('NodeSocketFloat', 'max')
+        self.inputs['period'].default_value = 1.0
+        self.inputs['min'].default_value = 0.0
+        self.inputs['max'].default_value = 1.0
 
         self.add_output('NodeSocketFloat', 'value')
 
@@ -225,13 +210,10 @@ class FMcosine(ShaderNodeBase):
         self.add_link(out, ('output', 0))
 
 
-class FMcircle(ShaderNodeBase):
+class FMcircle(ShaderSharedNodeBase):
     """Maps range 0..2 to semicircle curve"""
     bl_idname = "fabricomatic.circle"
     bl_label = "circle"
-
-    def init(self, context):
-        super().init(context)
 
     def build_tree(self):
         self.add_input('NodeSocketFloat', 'value')
@@ -253,7 +235,7 @@ class FMcircle(ShaderNodeBase):
         self.add_link(val, ('output', 'value'))
 
 
-class FMstripes(ShaderNodeBase):
+class FMstripes(ShaderSharedNodeBase):
     """Generatng periodic 1-dimentional stripes
 
     Generates a signal indicating presence of stripes.
@@ -282,16 +264,12 @@ class FMstripes(ShaderNodeBase):
     bl_idname = "fabricomatic.stripes"
     bl_label = "stripes"
 
-    def init(self, context):
-        super().init(context)
-        self.inputs['period'].default_value = 1.0
-        self.inputs['thickness'].default_value = 0.5
-        # self.tweak_profile()
-
     def build_tree(self):
         self.add_input('NodeSocketFloat', 't')
         self.add_input('NodeSocketFloat', 'period')
         self.add_input('NodeSocketFloat', 'thickness', min_value=0, max_value=1)
+        self.inputs['period'].default_value = 1.0
+        self.inputs['thickness'].default_value = 0.5
 
         self.add_output('NodeSocketFloat', 'strobe')
         self.add_output('NodeSocketFloat', 'profile')
@@ -327,7 +305,7 @@ class FMstripes(ShaderNodeBase):
         self.add_link(triangle, ('output', 'profile'))
 
 
-class FMWeaveProfiling(ShaderNodeBase):
+class FMWeaveProfiling(ShaderVolatileNodeBase):
     """Converting triangle profile to decent shape.
 
     Simply maps values 0..1 to some predefined curve.
@@ -336,8 +314,6 @@ class FMWeaveProfiling(ShaderNodeBase):
     """
     bl_idname = "fabricomatic.weave_profiling"
     bl_label = "weave profiling"
-
-    volatile = True
 
     PROFILE_SHAPES = (
         ('NONE', 'None', "Unmodified", 0),
@@ -356,10 +332,6 @@ class FMWeaveProfiling(ShaderNodeBase):
     def init(self, context):
         super().init(context)
         self.tweak_profile()
-
-    def copy(self, node):
-        super().copy(node)
-        self.profile_shape = node.profile_shape
 
     def build_tree(self):
         self.add_input('NodeSocketColor', 'profiles')

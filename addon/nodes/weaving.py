@@ -25,11 +25,11 @@ And this may produce other more ugly artefacts, not yet fixed.
 """
 import bpy
 
-from .base import ShaderNodeBase
+from .base import ShaderSharedNodeBase, ShaderVolatileNodeBase
 from .utils import FMmixfloats, FMfmodulo, FMcosine, FMstripes, FMWeaveProfiling
 
 
-class FMWeaveScaling(ShaderNodeBase):
+class FMWeaveScaling(ShaderVolatileNodeBase):
     """Dividing texture space.
 
     Scales vector to form weaving cells according to desired thread count.
@@ -57,8 +57,6 @@ class FMWeaveScaling(ShaderNodeBase):
     bl_idname = "fabricomatic.weave_scaling"
     bl_label = "weave scaling"
 
-    volatile = True
-
     balanced: bpy.props.BoolProperty(
         name="Balanced",
         description="Equal paramewters for warp and weft",
@@ -67,20 +65,16 @@ class FMWeaveScaling(ShaderNodeBase):
 
     def init(self, context):
         super().init(context)
-        self.inputs['threads count'].default_value = 200
-        self.inputs['warp count'].default_value = 200
-        self.inputs['weft count'].default_value = 200
         self.tweak_balance()
-
-    def copy(self, node):
-        super().copy(node)
-        self.balanced = node.balanced
 
     def build_tree(self):
         self.add_input('NodeSocketVector', 'vector')
         self.add_input('NodeSocketFloat', 'threads count', min_value=0.0)
         self.add_input('NodeSocketFloat', 'warp count', min_value=0.0)
         self.add_input('NodeSocketFloat', 'weft count', min_value=0.0)
+        self.inputs['threads count'].default_value = 200
+        self.inputs['warp count'].default_value = 200
+        self.inputs['weft count'].default_value = 200
 
         self.add_output('NodeSocketVector', 'vector')
         self.add_output('NodeSocketVector', 'scale')
@@ -112,7 +106,7 @@ class FMWeaveScaling(ShaderNodeBase):
         layout.prop(self, 'balanced')
 
 
-class FMWeaveStrobing(ShaderNodeBase):
+class FMWeaveStrobing(ShaderVolatileNodeBase):
     """Generating periodic stripes for warp and weft.
 
     Options:
@@ -137,8 +131,6 @@ class FMWeaveStrobing(ShaderNodeBase):
     bl_idname = "fabricomatic.weave_strobing"
     bl_label = "weave strobing"
 
-    volatile = True
-
     balanced: bpy.props.BoolProperty(
         name="Balanced",
         description="Equal paramewters for warp and weft",
@@ -153,20 +145,16 @@ class FMWeaveStrobing(ShaderNodeBase):
 
     def init(self, context):
         super().init(context)
-        self.inputs['thickness'].default_value = 0.5
-        self.inputs['warp thickness'].default_value = 0.5
-        self.inputs['weft thickness'].default_value = 0.5
         self.tweak_balance()
-
-    def copy(self, node):
-        super().copy(node)
-        self.balanced = node.balanced
 
     def build_tree(self):
         self.add_input('NodeSocketVector', 'vector')
         self.add_input('NodeSocketFloat', 'thickness', min_value=0.0, max_value=1.0)
         self.add_input('NodeSocketFloat', 'warp thickness', min_value=0.0, max_value=1.0)
         self.add_input('NodeSocketFloat', 'weft thickness', min_value=0.0, max_value=1.0)
+        self.inputs['thickness'].default_value = 0.5
+        self.inputs['warp thickness'].default_value = 0.5
+        self.inputs['weft thickness'].default_value = 0.5
 
         self.add_output('NodeSocketColor', 'strobes')
         self.add_output('NodeSocketColor', 'profiles')
@@ -236,7 +224,7 @@ class FMWeaveStrobing(ShaderNodeBase):
         layout.prop(self, 'profile_shape')
 
 
-class FMWeaveBulging(ShaderNodeBase):
+class FMWeaveBulging(ShaderVolatileNodeBase):
     """Thickness bulging
 
     Makes stripes thicker on face side, proportional to elevation.
@@ -257,8 +245,6 @@ class FMWeaveBulging(ShaderNodeBase):
     bl_idname = "fabricomatic.weave_bulging"
     bl_label = "weave bulging"
 
-    volatile = True
-
     balanced: bpy.props.BoolProperty(
         name="Balanced",
         description="Equal paramewters for warp and weft",
@@ -267,17 +253,7 @@ class FMWeaveBulging(ShaderNodeBase):
 
     def init(self, context):
         super().init(context)
-        self.inputs['thickness'].default_value = 0.5
-        self.inputs['warp thickness'].default_value = 0.5
-        self.inputs['weft thickness'].default_value = 0.5
-        self.inputs['shrinking'].default_value = 0.5
-        self.inputs['warp shrinking'].default_value = 0.5
-        self.inputs['weft shrinking'].default_value = 0.5
         self.tweak_balance()
-
-    def copy(self, node):
-        super().copy(node)
-        self.balanced = node.balanced
 
     def build_tree(self):
         self.add_input('NodeSocketColor', 'waves')
@@ -288,6 +264,12 @@ class FMWeaveBulging(ShaderNodeBase):
         self.add_input('NodeSocketFloat', 'shrinking', min_value=0, max_value=1.0)
         self.add_input('NodeSocketFloat', 'warp shrinking', min_value=0, max_value=1.0)
         self.add_input('NodeSocketFloat', 'weft shrinking', min_value=0, max_value=1.0)
+        self.inputs['thickness'].default_value = 0.5
+        self.inputs['warp thickness'].default_value = 0.5
+        self.inputs['weft thickness'].default_value = 0.5
+        self.inputs['shrinking'].default_value = 0.5
+        self.inputs['warp shrinking'].default_value = 0.5
+        self.inputs['weft shrinking'].default_value = 0.5
 
         self.add_output('NodeSocketFloat', 'warp thickness')
         self.add_output('NodeSocketFloat', 'weft thickness')
@@ -352,7 +334,7 @@ class FMWeaveBulging(ShaderNodeBase):
         layout.prop(self, 'balanced')
 
 
-class FMWeaveOverlaying(ShaderNodeBase):
+class FMWeaveOverlaying(ShaderVolatileNodeBase):
     """Combining and adjusting maps.
 
     The elevation and profiles are scaled according to provided thickness.
@@ -413,8 +395,6 @@ class FMWeaveOverlaying(ShaderNodeBase):
     bl_idname = "fabricomatic.weave_overlaying"
     bl_label = "weave overlaying"
 
-    volatile = True
-
     balanced: bpy.props.BoolProperty(
         name="Balanced",
         description="Equal paramewters for warp and weft",
@@ -428,18 +408,8 @@ class FMWeaveOverlaying(ShaderNodeBase):
 
     def init(self, context):
         super().init(context)
-        self.inputs['thickness'].default_value = 0.5
-        self.inputs['warp thickness'].default_value = 0.5
-        self.inputs['weft thickness'].default_value = 0.5
-        self.inputs['warp stiffness'].default_value = 0
-        self.inputs['weft stiffness'].default_value = 0
         self.tweak_balance()
         self.tweak_stiffnessful()
-
-    def copy(self, node):
-        super().copy(node)
-        self.balanced = node.balanced
-        self.stiffnessful = node.stiffnessful
 
     def build_tree(self):
         self.add_input('NodeSocketColor', 'waves')
@@ -451,6 +421,12 @@ class FMWeaveOverlaying(ShaderNodeBase):
         self.add_input('NodeSocketFloat', 'weft thickness', min_value=0.0, max_value=1.0)
         self.add_input('NodeSocketFloat', 'warp stiffness', min_value=0.0, max_value=1.0)
         self.add_input('NodeSocketFloat', 'weft stiffness', min_value=0.0, max_value=1.0)
+
+        self.inputs['thickness'].default_value = 0.5
+        self.inputs['warp thickness'].default_value = 0.5
+        self.inputs['weft thickness'].default_value = 0.5
+        self.inputs['warp stiffness'].default_value = 0
+        self.inputs['weft stiffness'].default_value = 0
 
         self.add_output('NodeSocketColor', 'elevation')
         self.add_output('NodeSocketColor', 'mask')
@@ -568,8 +544,9 @@ class FMWeaveOverlaying(ShaderNodeBase):
         # layout.prop(self, 'softmask')
 
 
-class FMWeaveMasking(ShaderNodeBase):
+class FMWeaveMasking(ShaderSharedNodeBase):
     """Creating thread mask from their elevations"""
+
     bl_idname = "fabricomatic.weave_masking"
     bl_label = "weave masking"
 
@@ -585,7 +562,7 @@ class FMWeaveMasking(ShaderNodeBase):
         self.add_link(mask, ('output', 'mask'))
 
 
-class FMWeavePatternSampling(ShaderNodeBase):
+class FMWeavePatternSampling(ShaderSharedNodeBase):
     """Generating coordinates for pattern sampling.
 
     Coordinates are snapped so that each pixel of pattern corresponds to cell of weaving.
@@ -613,15 +590,12 @@ class FMWeavePatternSampling(ShaderNodeBase):
     bl_idname = "fabricomatic.pattern_sampling"
     bl_label = "pattern sampling"
 
-    def init(self, context):
-        super().init(context)
-        self.inputs['width'].default_value = 16
-        self.inputs['height'].default_value = 16
-
     def build_tree(self):
         self.add_input('NodeSocketVector', 'vector')
         self.add_input('NodeSocketInt', 'width')
         self.add_input('NodeSocketInt', 'height')
+        self.inputs['width'].default_value = 16
+        self.inputs['height'].default_value = 16
 
         self.add_output('NodeSocketVector', 'vector 0')
         self.add_output('NodeSocketVector', 'vector l')
@@ -666,7 +640,7 @@ class FMWeavePatternSampling(ShaderNodeBase):
         self.add_link(vec_u, ('output', 'vector u'))
 
 
-class FMWeavePatternInterpolating(ShaderNodeBase):
+class FMWeavePatternInterpolating(ShaderSharedNodeBase):
     """Interpolating sampled pattern.
 
     Interpolates values from heighbour cells to form smooth transitions.
@@ -735,7 +709,7 @@ class FMWeavePatternInterpolating(ShaderNodeBase):
         self.add_link(out, ('output', 'waves'))
 
 
-class FMWeavingPlain(ShaderNodeBase):
+class FMWeavingPlain(ShaderSharedNodeBase):
     """Plain weaving.
 
     Generating simple checkerboard-like interlacing.
@@ -781,7 +755,7 @@ class FMWeavingPlain(ShaderNodeBase):
         self.add_link(out, ('output', 'waves'))
 
 
-class FMWeavingTwill(ShaderNodeBase):
+class FMWeavingTwill(ShaderSharedNodeBase):
     """Twill weaving
 
     Generating interlacing according to twill scheme specifying how weft yarn goes between warp yarns.
@@ -805,17 +779,14 @@ class FMWeavingTwill(ShaderNodeBase):
     bl_idname = "fabricomatic.weaving_twill"
     bl_label = "weaving twill"
 
-    def init(self, context):
-        super().init(context)
-        self.inputs['above'].default_value = 2
-        self.inputs['below'].default_value = 2
-        self.inputs['shift'].default_value = 1
-
     def build_tree(self):
         self.add_input('NodeSocketVector', 'vector')
         self.add_input('NodeSocketInt', 'above', min_value=1)
         self.add_input('NodeSocketInt', 'below', min_value=1)
         self.add_input('NodeSocketInt', 'shift')
+        self.inputs['above'].default_value = 2
+        self.inputs['below'].default_value = 2
+        self.inputs['shift'].default_value = 1
 
         self.add_output('NodeSocketColor', 'waves')
 
@@ -862,7 +833,7 @@ class FMWeavingTwill(ShaderNodeBase):
         self.add_link(waves, ('output', 'waves'))
 
 
-class FMWeavingJacquard(ShaderNodeBase):
+class FMWeavingJacquard(ShaderVolatileNodeBase):
     """Jacquard weaving.
 
     Generating interlacing according to given pattern image (corresponding to "weaving draft" in weaving reality).
@@ -884,8 +855,6 @@ class FMWeavingJacquard(ShaderNodeBase):
     bl_idname = "fabricomatic.weaving_jacquard"
     bl_label = "weaving jacquard"
 
-    volatile = True
-
     pattern: bpy.props.PointerProperty(
         type=bpy.types.Image,
         name="Pattern",
@@ -894,10 +863,6 @@ class FMWeavingJacquard(ShaderNodeBase):
     def init(self, context):
         super().init(context)
         self.pattern = bpy.data.images.new("weaving draft", 16, 16, is_data=True)
-
-    def copy(self, node):
-        super().copy(node)
-        self.pattern = node.pattern
 
     def build_tree(self):
         self.add_input('NodeSocketVector', 'vector')
