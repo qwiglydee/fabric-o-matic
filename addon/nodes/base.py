@@ -21,6 +21,10 @@ class ShaderNodeBuilding:
     def out(self):
         return self.node_tree.nodes['Group Output']
 
+    @property
+    def nodes(self):
+        return self.node_tree.nodes
+
     def init_inputs(self, specs):
         for spec in specs:
             kind, name, def_val, min_val, max_val, *_ = spec + (None, None, None)
@@ -65,10 +69,11 @@ class ShaderNodeBuilding:
                 return self.node_tree.nodes[dst[0]].inputs[dst[1]]
         raise ValueError(f"invalid dst {dst}")
 
-    def add_link(self, src, dst):
+    def link(self, src, dst):
         self.node_tree.links.new(self._get_src(src), self._get_dst(dst))
 
-    def add_node(self, kind, name=None, inputs=None, **attrs):
+    def node(self, kind, inputs, name=None, **attrs):
+        assert isinstance(kind, str) or hasattr(kind, 'bl_idname')
         if hasattr(kind, 'bl_idname'):
             kind = kind.bl_idname
         node = self.node_tree.nodes.new(kind)
@@ -76,56 +81,58 @@ class ShaderNodeBuilding:
             node.name = name
         for attr, val in attrs.items():
             setattr(node, attr, val)
-        if inputs:
-            for dstsock, inp in inputs.items():
-                if inp is None:
-                    continue
-                if isinstance(inp, float) or isinstance(inp, int):
-                    node.inputs[dstsock].default_value = inp
-                elif isinstance(inp, tuple) and inp[0] == '=':
-                    node.inputs[dstsock].default_value = inp[1]
-                else:
-                    self.add_link(inp, (node, dstsock))
+        if isinstance(inputs, (list, tuple)):
+            inputs = enumerate(inputs)
+        elif isinstance(inputs, dict):
+            inputs = inputs.items()
+        else:
+            raise ValueError('inputs')
+        for k, inp in inputs:
+            if inp is None:
+                continue
+            if isinstance(inp, float) or isinstance(inp, int):
+                node.inputs[k].default_value = inp
+            elif isinstance(inp, tuple) and inp[0] == '=':
+                node.inputs[k].default_value = inp[1]
+            else:
+                self.link(inp, (node, k))
         return node
 
-    def add_math(self, operation, *args, name=None):
-        return self.add_node(
+    def route(self, name):
+        return self.node('NodeReroute', (), name=name)
+
+    def math(self, operation, *args, name=None):
+        return self.node(
             'ShaderNodeMath',
-            name=name,
-            operation=operation,
-            inputs=dict(enumerate(args)))
+            args,            
+            operation=operation, 
+            name=name)
 
-    def add_vmath(self, operation, *args, name=None):
-        return self.add_node(
+    def vmath(self, operation, *args, name=None):
+        return self.node(
             'ShaderNodeVectorMath',
-            name=name,
+            args,            
             operation=operation,
-            inputs=dict(enumerate(args)))
+            name=name)
 
-    def add_col(self, r=0.0, g=0.0, b=0.0, name=None):
-        return self.add_node('ShaderNodeCombineRGB', inputs={'R': r, 'G': g, 'B': b}, name=name)
+    def col(self, r=0.0, g=0.0, b=0.0, name=None):
+        return self.node('ShaderNodeCombineRGB', {'R': r, 'G': g, 'B': b}, name=name)
 
-    def add_rgb(self, color, name=None):
-        return self.add_node('ShaderNodeSeparateRGB', inputs={0: color}, name=name)
+    def rgb(self, color, name=None):
+        return self.node('ShaderNodeSeparateRGB', (color,), name=name)
 
-    def add_vec(self, x=0.0, y=0.0, z=0.0, name=None):
-        return self.add_node('ShaderNodeCombineXYZ', inputs={'X': x, 'Y': y, 'Z': z}, name=name)
+    def vec(self, x=0.0, y=0.0, z=0.0, name=None):
+        return self.node('ShaderNodeCombineXYZ', {'X': x, 'Y': y, 'Z': z}, name=name)
 
-    def add_xyz(self, vector, name=None):
-        return self.add_node('ShaderNodeSeparateXYZ', inputs={0: vector}, name=name)
+    def xyz(self, vector, name=None):
+        return self.node('ShaderNodeSeparateXYZ', (vector,), name=name )
 
-    def add_mix(self, operation, color1=None, color2=None, fac=1.0, name=None):
-        return self.add_node(
+    def mix(self, operation, color1=None, color2=None, fac=1.0, name=None):
+        return self.node(
             'ShaderNodeMixRGB',
+            {'Fac': fac, 'Color1': color1, 'Color2': color2},
             blend_type=operation,
-            name=name,
-            inputs={
-                'Fac': fac,
-                'Color1': color1,
-                'Color2': color2})
-
-    def get_node(self, name):
-        return self.node_tree.nodes.get(name)
+            name=name)
 
 
 class ShaderSharedNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
