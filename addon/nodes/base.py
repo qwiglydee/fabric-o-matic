@@ -13,22 +13,29 @@ class ShaderNodeBuilding:
         self.node_tree.nodes.new('NodeGroupInput')
         self.node_tree.nodes.new('NodeGroupOutput')
 
-    def add_input(self, kind, name, **attrs):
-        isock = self.node_tree.inputs.new(kind, name)
-        sock = self.inputs[name]
-        for attr, val in attrs.items():
-            if attr in ('min_value', 'max_value'):
-                setattr(isock, attr, val)
-            else:
-                setattr(sock, attr, val)
-        return sock
+    @property
+    def inp(self):
+        return self.node_tree.nodes['Group Input']
 
-    def add_output(self, kind, name, **attrs):
-        self.node_tree.outputs.new(kind, name)
-        sock = self.outputs[name]
-        for attr, val in attrs.items():
-            setattr(sock, attr, val)
-        return sock
+    @property
+    def out(self):
+        return self.node_tree.nodes['Group Output']
+
+    def init_inputs(self, specs):
+        for spec in specs:
+            kind, name, def_val, min_val, max_val, *_ = spec + (None, None, None)
+            isock = self.node_tree.inputs.new(kind, name)
+            if def_val is not None:
+                self.inputs[name].default_value = def_val
+            if min_val is not None:
+                isock.min_value = min_val
+            if max_val is not None:
+                isock.max_value = max_val
+
+    def init_outputs(self, specs):
+        for spec in specs:
+            kind, name = spec
+            self.node_tree.outputs.new(kind, name)
 
     def _get_src(self, src):
         if isinstance(src, bpy.types.NodeSocket):
@@ -41,10 +48,7 @@ class ShaderNodeBuilding:
             if isinstance(src[0], bpy.types.Node):
                 return src[0].outputs[src[1]]
             if isinstance(src[0], str):
-                if src[0] == 'input':
-                    return self.node_tree.nodes['Group Input'].outputs[src[1]]
-                else:
-                    return self.node_tree.nodes[src[0]].outputs[src[1]]
+                return self.node_tree.nodes[src[0]].outputs[src[1]]
         raise ValueError(f"invalid src {src}")
 
     def _get_dst(self, dst):
@@ -58,10 +62,7 @@ class ShaderNodeBuilding:
             if isinstance(dst[0], bpy.types.Node):
                 return dst[0].inputs[dst[1]]
             if isinstance(dst[0], str):
-                if dst[0] == 'output':
-                    return self.node_tree.nodes['Group Output'].inputs[dst[1]]
-                else:
-                    return self.node_tree.nodes[dst[0]].inputs[dst[1]]
+                return self.node_tree.nodes[dst[0]].inputs[dst[1]]
         raise ValueError(f"invalid dst {dst}")
 
     def add_link(self, src, dst):
@@ -129,6 +130,8 @@ class ShaderNodeBuilding:
 
 class ShaderSharedNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
     """Node with shared tree"""
+    inp_sockets = ()
+    out_sockets = ()
 
     def init(self, _context):
         name = "." + self.__class__.__name__
@@ -136,15 +139,21 @@ class ShaderSharedNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
             self.node_tree = bpy.data.node_groups[name]
         else:
             self.init_tree(name)
+            self.init_inputs(self.inp_sockets)
+            self.init_outputs(self.out_sockets)
             self.build_tree()
 
 
 class ShaderVolatileNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup):
     """Node with volatile tree"""
+    inp_sockets = ()
+    out_sockets = ()
 
     def init(self, _context):
         name = "." + self.__class__.__name__ + ".000"
         self.init_tree(name)
+        self.init_inputs(self.inp_sockets)
+        self.init_outputs(self.out_sockets)
         self.build_tree()
 
     def copy(self, node):
@@ -152,5 +161,4 @@ class ShaderVolatileNodeBase(ShaderNodeBuilding, bpy.types.ShaderNodeCustomGroup
 
     def free(self):
         self.node_tree.nodes.clear()
-        self.free_tree()
-    
+        bpy.data.node_groups.remove(self.node_tree)

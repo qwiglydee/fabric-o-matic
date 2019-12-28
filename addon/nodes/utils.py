@@ -28,30 +28,33 @@ class FMmixvalues(ShaderSharedNodeBase):
     bl_idname = "fabricomatic.mixvalues"
     bl_label = "mixing values"
 
+    inp_sockets = (
+        ('NodeSocketColor', 'mask'),
+        ('NodeSocketFloat', 'warp value'),
+        ('NodeSocketFloat', 'weft value'),
+        ('NodeSocketColor', 'warp color'),
+        ('NodeSocketColor', 'weft color'),
+    )
+    out_sockets = (
+        ('NodeSocketFloat', 'value'),
+        ('NodeSocketColor', 'color'),
+    )
+
     def build_tree(self):
-        self.add_input('NodeSocketColor', 'mask')
-        self.add_input('NodeSocketFloat', 'warp value')
-        self.add_input('NodeSocketFloat', 'weft value')
-        self.add_input('NodeSocketColor', 'warp color')
-        self.add_input('NodeSocketColor', 'weft color')
-
-        self.add_output('NodeSocketFloat', 'value')
-        self.add_output('NodeSocketColor', 'color')
-
-        mask = self.add_rgb(('input', 'mask'))
+        mask = self.add_rgb((self.inp, 'mask'))
 
         val = self.add_math(
             'ADD',
-            self.add_math('MULTIPLY', ('input', 'weft value'), (mask, 'R')),
-            self.add_math('MULTIPLY', ('input', 'warp value'), (mask, 'G')))
+            self.add_math('MULTIPLY', (self.inp, 'weft value'), (mask, 'R')),
+            self.add_math('MULTIPLY', (self.inp, 'warp value'), (mask, 'G')))
 
         col = self.add_mix(
             'ADD',
-            self.add_mix('MIX', ('=', (0, 0, 0, 0)), ('input', 'weft color'), fac=(mask, 'R')),
-            self.add_mix('MIX', ('=', (0, 0, 0, 0)), ('input', 'warp color'), fac=(mask, 'G')))
+            self.add_mix('MIX', ('=', (0, 0, 0, 0)), (self.inp, 'weft color'), fac=(mask, 'R')),
+            self.add_mix('MIX', ('=', (0, 0, 0, 0)), (self.inp, 'warp color'), fac=(mask, 'G')))
 
-        self.add_link(val, ('output', 'value'))
-        self.add_link(col, ('output', 'color'))
+        self.add_link(val, (self.out, 'value'))
+        self.add_link(col, (self.out, 'color'))
 
 
 class FMmixfloats(ShaderSharedNodeBase):
@@ -63,23 +66,28 @@ class FMmixfloats(ShaderSharedNodeBase):
     bl_idname = "fabricomatic.mixfloats"
     bl_label = "mixing floats"
 
+    inp_sockets = (
+    )
+    out_sockets = (
+    )
+
     def build_tree(self):
-        self.add_input('NodeSocketFloat', 'fac')
-        self.add_input('NodeSocketFloat', 'value 1')
-        self.add_input('NodeSocketFloat', 'value 2')
-        self.add_output('NodeSocketFloat', 'value')
+        ('NodeSocketFloat', 'fac'),
+        ('NodeSocketFloat', 'value 1'),
+        ('NodeSocketFloat', 'value 2'),
+        ('NodeSocketFloat', 'value'),
         val = self.add_math(
             'ADD',
             self.add_math(
                 'MULTIPLY',
                 self.add_math(
-                    'SUBTRACT', 1.0, ('input', 'fac')),
-                ('input', 'value 1')),
+                    'SUBTRACT', 1.0, (self.inp, 'fac')),
+                (self.inp, 'value 1')),
             self.add_math(
                 'MULTIPLY',
-                ('input', 'fac'),
-                ('input', 'value 2')))
-        self.add_link(val, ('output', 'value'))
+                (self.inp, 'fac'),
+                (self.inp, 'value 2')))
+        self.add_link(val, (self.out, 'value'))
 
 
 class FMfmodulo(ShaderSharedNodeBase):
@@ -91,25 +99,29 @@ class FMfmodulo(ShaderSharedNodeBase):
     bl_idname = "fabricomatic.fmodulo"
     bl_label = "fmodulo"
 
-    def build_tree(self):
-        self.add_input('NodeSocketFloat', 'divident')
-        self.add_input('NodeSocketFloat', 'divisor')
-        self.add_output('NodeSocketFloat', 'remainder')
+    inp_sockets = (
+        ('NodeSocketFloat', 'divident'),
+        ('NodeSocketFloat', 'divisor'),
+    )
+    out_sockets = (
+        ('NodeSocketFloat', 'remainder'),
+    )
 
+    def build_tree(self):
         val = self.add_math(
             'SUBTRACT',
-            ('input', 'divident'),
+            (self.inp, 'divident'),
             self.add_math(
                 'MULTIPLY',
                 self.add_math(
                     'FLOOR',
                     self.add_math(
                         'DIVIDE',
-                        ('input', 'divident'),
-                        ('input', 'divisor'))),
-                ('input', 'divisor')))
+                        (self.inp, 'divident'),
+                        (self.inp, 'divisor'))),
+                (self.inp, 'divisor')))
 
-        self.add_link(val, ('output', 'remainder'))
+        self.add_link(val, (self.out, 'remainder'))
 
 
 class FMzigzag(ShaderSharedNodeBase):
@@ -122,25 +134,25 @@ class FMzigzag(ShaderSharedNodeBase):
     bl_idname = "fabricomatic.zigzag"
     bl_label = "zigzag"
 
+    inp_sockets = (
+        ('NodeSocketFloat', 't', 1.0),
+        ('NodeSocketFloat', 'period', 1.0),
+        ('NodeSocketFloat', 'shift', 0.0),
+        ('NodeSocketFloat', 'min', 0.0),
+        ('NodeSocketFloat', 'max', 1.0),
+    )
+    out_sockets = (
+        ('NodeSocketFloat', 'value'),
+    )
+
     def build_tree(self):
-        self.add_input('NodeSocketFloat', 't')
-        self.add_input('NodeSocketFloat', 'period')
-        self.add_input('NodeSocketFloat', 'shift')
-        self.add_input('NodeSocketFloat', 'min')
-        self.add_input('NodeSocketFloat', 'max')
-        self.inputs['period'].default_value = 1.0
-        self.inputs['min'].default_value = 0.0
-        self.inputs['max'].default_value = 1.0
-
-        self.add_output('NodeSocketFloat', 'value')
-
         arg = self.add_math(
             'ADD',
             self.add_math(
                 'DIVIDE',
-                ('input', 't'),
-                ('input', 'period')),
-            ('input', 'shift'))
+                (self.inp, 't'),
+                (self.inp, 'period')),
+            (self.inp, 'shift'))
 
         val = self.add_math(
             'ABSOLUTE',
@@ -155,11 +167,11 @@ class FMzigzag(ShaderSharedNodeBase):
                 0: val,
                 1: -0.5,
                 2: +0.5,
-                3: ('input', 'min'),
-                4: ('input', 'max')
+                3: (self.inp, 'min'),
+                4: (self.inp, 'max')
                 })
 
-        self.add_link(out, ('output', 0))
+        self.add_link(out, (self.out, 0))
 
 
 class FMcosine(ShaderSharedNodeBase):
@@ -172,18 +184,18 @@ class FMcosine(ShaderSharedNodeBase):
     bl_idname = "fabricomatic.cosine"
     bl_label = "cosine"
 
+    inp_sockets = (
+        ('NodeSocketFloat', 't'),
+        ('NodeSocketFloat', 'period', 1.0),
+        ('NodeSocketFloat', 'shift', 0.0),
+        ('NodeSocketFloat', 'min', 0.0),
+        ('NodeSocketFloat', 'max', 1.0),
+    )
+    out_sockets = (
+        ('NodeSocketFloat', 'value'),
+    )
+
     def build_tree(self):
-        self.add_input('NodeSocketFloat', 't')
-        self.add_input('NodeSocketFloat', 'period')
-        self.add_input('NodeSocketFloat', 'shift')
-        self.add_input('NodeSocketFloat', 'min')
-        self.add_input('NodeSocketFloat', 'max')
-        self.inputs['period'].default_value = 1.0
-        self.inputs['min'].default_value = 0.0
-        self.inputs['max'].default_value = 1.0
-
-        self.add_output('NodeSocketFloat', 'value')
-
         val = self.add_math(
             'COSINE',
             self.add_math(
@@ -192,9 +204,9 @@ class FMcosine(ShaderSharedNodeBase):
                     'ADD',
                     self.add_math(
                         'DIVIDE',
-                        ('input', 't'),
-                        ('input', 'period')),
-                    ('input', 'shift')),
+                        (self.inp, 't'),
+                        (self.inp, 'period')),
+                    (self.inp, 'shift')),
                 math.pi * 2)
             )
         out = self.add_node(
@@ -203,11 +215,11 @@ class FMcosine(ShaderSharedNodeBase):
                 0: val,
                 1: -1.0,
                 2: +1.0,
-                3: ('input', 'min'),
-                4: ('input', 'max')
+                3: (self.inp, 'min'),
+                4: (self.inp, 'max')
                 })
 
-        self.add_link(out, ('output', 0))
+        self.add_link(out, (self.out, 0))
 
 
 class FMcircle(ShaderSharedNodeBase):
@@ -215,24 +227,28 @@ class FMcircle(ShaderSharedNodeBase):
     bl_idname = "fabricomatic.circle"
     bl_label = "circle"
 
-    def build_tree(self):
-        self.add_input('NodeSocketFloat', 'value')
-        self.add_output('NodeSocketFloat', 'value')
+    inp_sockets = (
+        ('NodeSocketFloat', 'value'),
+    )
+    out_sockets = (
+        ('NodeSocketFloat', 'value'),
+    )
 
+    def build_tree(self):
         val = self.add_math(
             'SQRT',
             self.add_math(
                 'SUBTRACT',
                 self.add_math(
                     'MULTIPLY',
-                    ('input', 'value'),
+                    (self.inp, 'value'),
                     2.0),
                 self.add_math(
                     'POWER',
-                    ('input', 'value'),
+                    (self.inp, 'value'),
                     2.0)))
 
-        self.add_link(val, ('output', 'value'))
+        self.add_link(val, (self.out, 'value'))
 
 
 class FMstripes(ShaderSharedNodeBase):
@@ -264,22 +280,23 @@ class FMstripes(ShaderSharedNodeBase):
     bl_idname = "fabricomatic.stripes"
     bl_label = "stripes"
 
+    inp_sockets = (
+        ('NodeSocketFloat', 't'),
+        ('NodeSocketFloat', 'period', 1.0),
+        ('NodeSocketFloat', 'thickness', 0.5, 0.0, 1.0),
+    )
+    out_sockets = (
+        ('NodeSocketFloat', 'strobe'),
+        ('NodeSocketFloat', 'profile'),
+    )
+
     def build_tree(self):
-        self.add_input('NodeSocketFloat', 't')
-        self.add_input('NodeSocketFloat', 'period')
-        self.add_input('NodeSocketFloat', 'thickness', min_value=0, max_value=1)
-        self.inputs['period'].default_value = 1.0
-        self.inputs['thickness'].default_value = 0.5
-
-        self.add_output('NodeSocketFloat', 'strobe')
-        self.add_output('NodeSocketFloat', 'profile')
-
-        w = self.add_math('MULTIPLY', ('input', 'thickness'), 0.5)
+        w = self.add_math('MULTIPLY', (self.inp, 'thickness'), 0.5)
         z = self.add_node(
             FMzigzag,
             inputs={
-                't': ('input', 't'),
-                'period': ('input', 'period'),
+                't': (self.inp, 't'),
+                'period': (self.inp, 'period'),
                 'shift': 0.5,
                 'min': -1.0,
                 'max': 0.0,
@@ -301,8 +318,8 @@ class FMstripes(ShaderSharedNodeBase):
             0.0,
             name='triangle')
 
-        self.add_link(strobe, ('output', 'strobe'))
-        self.add_link(triangle, ('output', 'profile'))
+        self.add_link(strobe, (self.out, 'strobe'))
+        self.add_link(triangle, (self.out, 'profile'))
 
 
 class FMWeaveProfiling(ShaderVolatileNodeBase):
@@ -314,6 +331,13 @@ class FMWeaveProfiling(ShaderVolatileNodeBase):
     """
     bl_idname = "fabricomatic.weave_profiling"
     bl_label = "weave profiling"
+
+    inp_sockets = (
+        ('NodeSocketColor', 'profiles'),
+    )
+    out_sockets = (
+        ('NodeSocketColor', 'profiles'),
+    )
 
     PROFILE_SHAPES = (
         ('NONE', 'None', "Unmodified", 0),
@@ -334,10 +358,7 @@ class FMWeaveProfiling(ShaderVolatileNodeBase):
         self.tweak_profile()
 
     def build_tree(self):
-        self.add_input('NodeSocketColor', 'profiles')
-        self.add_output('NodeSocketColor', 'profiles')
-
-        profiles_rgb = self.add_rgb(('input', 'profiles'))
+        profiles_rgb = self.add_rgb((self.inp, 'profiles'))
 
         self.add_col(
             self.add_math('GREATER_THAN', (profiles_rgb, 'R'), 0.0),
@@ -359,19 +380,19 @@ class FMWeaveProfiling(ShaderVolatileNodeBase):
             self.add_node(FMcosine, inputs={'t': (profiles_rgb, 'G'), 'period': 4.0, 'shift': -0.25}),
             name='hsine')
 
-        self.add_link(('input', 'profiles'), ('output', 'profiles'))
+        self.add_link((self.inp, 'profiles'), (self.out, 'profiles'))
 
     def tweak_profile(self):
         if self.profile_shape == 'ROUND':
-            self.add_link('round', ('output', 'profiles'))
+            self.add_link('round', (self.out, 'profiles'))
         elif self.profile_shape == 'SINE':
-            self.add_link('sine', ('output', 'profiles'))
+            self.add_link('sine', (self.out, 'profiles'))
         elif self.profile_shape == 'HSINE':
-            self.add_link('hsine', ('output', 'profiles'))
+            self.add_link('hsine', (self.out, 'profiles'))
         elif self.profile_shape == 'FLAT':
-            self.add_link('flat', ('output', 'profiles'))
+            self.add_link('flat', (self.out, 'profiles'))
         else:
-            self.add_link(('input', 'profiles'), ('output', 'profiles'))
+            self.add_link((self.inp, 'profiles'), (self.out, 'profiles'))
 
     def draw_buttons(self, _context, layout):
         layout.prop(self, 'profile_shape', text="")
