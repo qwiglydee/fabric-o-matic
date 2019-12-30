@@ -142,16 +142,16 @@ class FMWeaveStrobing(BalancingMixin, ShaderVolatileNodeBase):
         strobes
             Map of stripes as triangle shaped profiles.
             Maximum value =1.0 at the very middle of stripes, down to =0.0 at edges and over gaps
-        mask
+        stripes
             Map of stripes as binary values.
             Value =1.0 over stripes and =0.0 over gaps
-        profile
+        profiles
             Map of stripes with semicircular profile.
             Value is normalized to have height =1.0
             To make it perfectly round (in texture scale) it should be scaled down
             proportinally to thickness (by overlaying node) and overall weaving scale (by bump/displacement node).
         alpha
-            Overall binary transparency mask
+            Overall binary transparency mask (just a monochrome version of stripes map)
     """
     bl_idname = "fabricomatic.weave_strobing"
     bl_label = "weave strobing"
@@ -164,7 +164,7 @@ class FMWeaveStrobing(BalancingMixin, ShaderVolatileNodeBase):
     )
     out_sockets = (
         ('NodeSocketColor', 'strobes'),
-        ('NodeSocketColor', 'mask'),
+        ('NodeSocketColor', 'stripes'),
         ('NodeSocketColor', 'profiles'),
         ('NodeSocketFloat', 'alpha'),
     )
@@ -204,20 +204,20 @@ class FMWeaveStrobing(BalancingMixin, ShaderVolatileNodeBase):
             (stripes_wft, 'strobe'),
             (stripes_wrp, 'strobe'))
 
-        mask = self.col(
+        stripes = self.col(
             self.math('GREATER_THAN', (stripes_wft, 'strobe'), 0),
             self.math('GREATER_THAN', (stripes_wrp, 'strobe'), 0),
         )
+
+        alpha = (self.node('ShaderNodeSeparateHSV', inputs={0: stripes}), 'V')
 
         profiles = self.col(
             self.node(FMcircle, ((stripes_wft, 'strobe'),)),
             self.node(FMcircle, ((stripes_wrp, 'strobe'),)),
         )
 
-        alpha = (self.node('ShaderNodeSeparateHSV', inputs={0: mask}), 'V')
-
         self.link(strobes, (self.out, 'strobes'))
-        self.link(mask, (self.out, 'mask'))
+        self.link(stripes, (self.out, 'stripes'))
         self.link(profiles, (self.out, 'profiles'))
         self.link(alpha, (self.out, 'alpha'))
 
@@ -355,12 +355,12 @@ class FMWeaveOverlaying(BalancingMixin, ShaderVolatileNodeBase):
             Apply stiffness. Applying it to both warp and weft will obviously compensate the effect.
 
     Inputs:
-        strobes
-            Boolean map of stripes.
-        profiles
-            Height map of stripes' profiles.
         waves
             Height map of stripes' waves. Should be in range ``-1 .. +1``
+        stripes
+            Boolean map of stripes, as from strobing.
+        profiles
+            Height map of stripes' profiles.
         thickness
             Height of stripes (kinda radius of semi-circular shape).
         stiffness
@@ -368,11 +368,11 @@ class FMWeaveOverlaying(BalancingMixin, ShaderVolatileNodeBase):
 
     Outputs:
         evalation
-            Combined elevation of waves and profiles separately for each channel.
+            Map of combined elevation of waves and profiles (separate for each channel).
         mask
-            Map indicating which kind of stripe is on face side.
+            Combined id-map indicating which kind of stripe is on face side.
         height
-            Resulting height for bump mapping.
+            Combined height for bump mapping.
     """
 
     # stiffnessless:
@@ -399,7 +399,7 @@ class FMWeaveOverlaying(BalancingMixin, ShaderVolatileNodeBase):
 
     inp_sockets = (
         ('NodeSocketColor', 'waves'),
-        ('NodeSocketColor', 'strobes'),
+        ('NodeSocketColor', 'stripes'),
         ('NodeSocketColor', 'profiles'),
         ('NodeSocketFloat', 'thickness', 0.5, 0.0, 1.0),
         ('NodeSocketFloat', 'warp thickness', 0.5, 0.0, 1.0),
@@ -494,7 +494,7 @@ class FMWeaveOverlaying(BalancingMixin, ShaderVolatileNodeBase):
 
         height = self.mix(
             'ADD',
-            self.mix('MULTIPLY', waves, (self.inp, 'strobes')),
+            self.mix('MULTIPLY', waves, (self.inp, 'stripes')),
             profiles,
             name='height')
 
