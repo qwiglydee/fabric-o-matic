@@ -29,15 +29,37 @@ from .base import ShaderSharedNodeBase, ShaderVolatileNodeBase
 from .utils import FMmixfloats, FMfmodulo, FMcosine, FMstripes, FMcircle
 
 
-class FMWeaveScaling(ShaderVolatileNodeBase):
+class BalancingMixin():
+    def tweak_balancing(self, balanced, bal_name, wrp_name, wft_name, wrp_route, wft_route):
+        inp_bal = self.inputs[bal_name]
+        inp_wrp = self.inputs[wrp_name]
+        inp_wft = self.inputs[wft_name]
+        if balanced:
+            inp_bal.enabled = True
+            inp_wrp.enabled = False
+            inp_wft.enabled = False
+            inp_bal.default_value = inp_wrp.default_value
+            self.link(self.inp.outputs[bal_name], wrp_route)
+            self.link(self.inp.outputs[bal_name], wft_route)
+        else:
+            inp_bal.enabled = False
+            inp_wrp.enabled = True
+            inp_wft.enabled = True
+            inp_wrp.default_value = inp_bal.default_value
+            inp_wft.default_value = inp_bal.default_value
+            self.link(self.inp.outputs[wrp_name], wrp_route)
+            self.link(self.inp.outputs[wft_name], wft_route)
+
+
+class FMWeaveScaling(BalancingMixin, ShaderVolatileNodeBase):
     """Dividing texture space.
 
     Scales vector to form weaving cells according to desired thread count.
     Basically, a wrapper around few simple vector math operations.
 
     Options:
-        balanced
-            Use the same thread count for warp and weft.
+        unbalanced
+            Use separate values for warp and weft.
 
     Inputs:
         vector
@@ -69,10 +91,10 @@ class FMWeaveScaling(ShaderVolatileNodeBase):
         ('NodeSocketVector', 'snapped'),
     )
 
-    balanced: bpy.props.BoolProperty(
-        name="Balanced",
-        description="Equal paramewters for warp and weft",
-        default=True,
+    unbalanced: bpy.props.BoolProperty(
+        name="Unbalanced",
+        description="Separate parameters for warp and weft",
+        default=False,
         update=lambda s, c: s.tweak_balance())
 
     def init(self, context):
@@ -80,9 +102,8 @@ class FMWeaveScaling(ShaderVolatileNodeBase):
         self.tweak_balance()
 
     def build_tree(self):
-        # x = warp count, y = weft count
         # rerouted in tweak_balance
-        freq = self.vec(0.0, 0.0, name='freq')
+        freq = self.vec((self.inp, 'warp count'), (self.inp, 'weft count'), name='freq')
 
         vector = self.vmath('MULTIPLY', (self.inp, 'vector'), freq)
         scale = self.vmath('DIVIDE', ('=', (1.0, 1.0, 1.0)), freq)
@@ -92,28 +113,24 @@ class FMWeaveScaling(ShaderVolatileNodeBase):
         self.link(snapped, (self.out, 'snapped'))
 
     def tweak_balance(self):
-        self.inputs['threads count'].enabled = self.balanced
-        self.inputs['warp count'].enabled = not self.balanced
-        self.inputs['weft count'].enabled = not self.balanced
-        if self.balanced:
-            self.link((self.inp, 'threads count'), ('freq', 'X'))
-            self.link((self.inp, 'threads count'), ('freq', 'Y'))
-        else:
-            self.link((self.inp, 'warp count'), ('freq', 'X'))
-            self.link((self.inp, 'weft count'), ('freq', 'Y'))
-
+        self.tweak_balancing(
+            not self.unbalanced,
+            'threads count', 'warp count', 'weft count',
+            ('freq', 'X'), ('freq', 'Y')
+        )
+  
     def draw_buttons(self, _context, layout):
-        layout.prop(self, 'balanced')
+        layout.prop(self, 'unbalanced')
 
 
-class FMWeaveStrobing(ShaderVolatileNodeBase):
+class FMWeaveStrobing(BalancingMixin, ShaderVolatileNodeBase):
     """Generating periodic stripes for warp and weft.
 
     Outputs maps indicating placement of stripes.
 
     Options:
-        balanced
-            Use the same thickness for warp and weft scaling
+        unbalanced
+            Use separate values for warp and weft.
 
     Inputs:
         vector
@@ -152,10 +169,10 @@ class FMWeaveStrobing(ShaderVolatileNodeBase):
         ('NodeSocketFloat', 'alpha'),
     )
 
-    balanced: bpy.props.BoolProperty(
-        name="Balanced",
-        description="Equal paramewters for warp and weft",
-        default=True,
+    unbalanced: bpy.props.BoolProperty(
+        name="Unbalanced",
+        description="Separate parameters for warp and weft",
+        default=False,
         update=lambda s, c: s.tweak_balance())
 
     def init(self, context):
@@ -205,24 +222,24 @@ class FMWeaveStrobing(ShaderVolatileNodeBase):
         self.link(alpha, (self.out, 'alpha'))
 
     def tweak_balance(self):
-        self.inputs['thickness'].enabled = self.balanced
-        self.inputs['warp thickness'].enabled = not self.balanced
-        self.inputs['weft thickness'].enabled = not self.balanced
-        if self.balanced:
-            self.link((self.inp, 'thickness'), 'th_wrp')
-            self.link((self.inp, 'thickness'), 'th_wft')
-        else:
-            self.link((self.inp, 'warp thickness'), 'th_wrp')
-            self.link((self.inp, 'weft thickness'), 'th_wft')
+        self.tweak_balancing(
+            not self.unbalanced,
+            'thickness', 'warp thickness', 'weft thickness',
+            'th_wrp', 'th_wft'
+        )
 
     def draw_buttons(self, _context, layout):
-        layout.prop(self, 'balanced')
+        layout.prop(self, 'unbalanced')
 
 
-class FMWeaveBulging(ShaderVolatileNodeBase):
+class FMWeaveBulging(BalancingMixin, ShaderVolatileNodeBase):
     """Thickness bulging
 
     Makes stripes thicker on face side, proportional to elevation.
+
+    Options:
+        unbalanced
+            Use separate values for warp and weft.
 
     Inputs:
         waves
@@ -254,10 +271,10 @@ class FMWeaveBulging(ShaderVolatileNodeBase):
         ('NodeSocketFloat', 'weft thickness'),
     )
 
-    balanced: bpy.props.BoolProperty(
-        name="Balanced",
-        description="Equal paramewters for warp and weft",
-        default=True,
+    unbalanced: bpy.props.BoolProperty(
+        name="Unbalanced",
+        description="Separate parameters for warp and weft",
+        default=False,
         update=lambda s, c: s.tweak_balance())
 
     def init(self, context):
@@ -304,28 +321,22 @@ class FMWeaveBulging(ShaderVolatileNodeBase):
         self.link(th_wft, (self.out, 'weft thickness'))
 
     def tweak_balance(self):
-        self.inputs['thickness'].enabled = self.balanced
-        self.inputs['shrinking'].enabled = self.balanced
-        self.inputs['warp thickness'].enabled = not self.balanced
-        self.inputs['warp shrinking'].enabled = not self.balanced
-        self.inputs['weft thickness'].enabled = not self.balanced
-        self.inputs['weft shrinking'].enabled = not self.balanced
-        if self.balanced:
-            self.link((self.inp, 'thickness'), 'max_wrp')
-            self.link((self.inp, 'thickness'), 'max_wft')
-            self.link((self.inp, 'shrinking'), 'fac_wrp')
-            self.link((self.inp, 'shrinking'), 'fac_wft')
-        else:
-            self.link((self.inp, 'warp thickness'), 'max_wrp')
-            self.link((self.inp, 'weft thickness'), 'max_wft')
-            self.link((self.inp, 'warp shrinking'), 'fac_wrp')
-            self.link((self.inp, 'weft shrinking'), 'fac_wft')
+        self.tweak_balancing(
+            not self.unbalanced,
+            'thickness', 'warp thickness', 'weft thickness',
+            'max_wrp', 'max_wft'
+        )
+        self.tweak_balancing(
+            not self.unbalanced,
+            'shrinking', 'warp shrinking', 'weft shrinking',
+            'fac_wrp', 'fac_wft'
+        )
 
     def draw_buttons(self, _context, layout):
-        layout.prop(self, 'balanced')
+        layout.prop(self, 'unbalanced')
 
 
-class FMWeaveOverlaying(ShaderVolatileNodeBase):
+class FMWeaveOverlaying(BalancingMixin, ShaderVolatileNodeBase):
     """Combining and adjusting maps.
 
     The elevation and profiles are scaled according to provided thickness.
@@ -338,8 +349,8 @@ class FMWeaveOverlaying(ShaderVolatileNodeBase):
     but some weavers beat weft yarn so hard that it becomes the other way around.
 
     Options:
-        balanced
-            Use the same thickness for warp and weft.
+        unbalanced
+            Use separate values for warp and weft.
         stifness
             Apply stiffness. Applying it to both warp and weft will obviously compensate the effect.
 
@@ -402,14 +413,15 @@ class FMWeaveOverlaying(ShaderVolatileNodeBase):
         ('NodeSocketFloat', 'height'),
     )
 
-    balanced: bpy.props.BoolProperty(
-        name="Balanced",
-        description="Equal paramewters for warp and weft",
-        default=True,
+    unbalanced: bpy.props.BoolProperty(
+        name="Unbalanced",
+        description="Separate parameters for warp and weft",
+        default=False,
         update=lambda s, c: s.tweak_balance())
 
     stiffnessful: bpy.props.BoolProperty(
-        name="Stiffness", default=False,
+        name="Stiffness", 
+        default=False,
         update=lambda s, c: s.tweak_stiffnessful(),
         description="Straighten stripes")
 
@@ -494,18 +506,11 @@ class FMWeaveOverlaying(ShaderVolatileNodeBase):
         self.link((height_hsv, 'V'), (self.out, 'height'))
 
     def tweak_balance(self):
-        if self.balanced:
-            self.inputs['thickness'].enabled = True
-            self.inputs['warp thickness'].enabled = False
-            self.inputs['weft thickness'].enabled = False
-            self.link((self.inp, 'thickness'), 'th_wrp')
-            self.link((self.inp, 'thickness'), 'th_wft')
-        else:
-            self.inputs['thickness'].enabled = False
-            self.inputs['warp thickness'].enabled = True
-            self.inputs['weft thickness'].enabled = True
-            self.link((self.inp, 'warp thickness'), 'th_wrp')
-            self.link((self.inp, 'weft thickness'), 'th_wft')
+        self.tweak_balancing(
+            not self.unbalanced,
+            'thickness', 'warp thickness', 'weft thickness',
+            'th_wrp', 'th_wft'
+        )
 
     def tweak_stiffnessful(self):
         if self.stiffnessful:
@@ -519,16 +524,9 @@ class FMWeaveOverlaying(ShaderVolatileNodeBase):
             self.link('x_thick', 'ampl')
             self.link('x_thick', 'base')
 
-    # def tweak_softness(self):
-    #     if self.softmask:
-    #         self.link('height', (self.out, 'mask'))
-    #     else:
-    #         self.link('mask', (self.out, 'mask'))
-
     def draw_buttons(self, _context, layout):
-        layout.prop(self, 'balanced')
+        layout.prop(self, 'unbalanced')
         layout.prop(self, 'stiffnessful')
-        # layout.prop(self, 'softmask')
 
 
 class FMWeaveMasking(ShaderSharedNodeBase):
