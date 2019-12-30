@@ -236,30 +236,26 @@ class FMcircle(ShaderSharedNodeBase):
 
 
 class FMstripes(ShaderSharedNodeBase):
-    """Generatng periodic 1-dimentional stripes
+    """Generating periodic 1-dimentional stripes
 
-    Generates a signal indicating presence of stripes.
-    The stripe is placed in the middle of period range.
+    Outputs a signal indicating presence of stripes.
+    The stripes are placed in the middle of period.
 
     Inputs:
         - t
-            coordinate
+            coordinate (across stripes)
         - period
-            period
+            period (total width of stripe + gap)
         - thickness
-            amount of stripe in range
+            relative width of stripes
 
     Outputs:
-        - strobe
-            boolean value, =1.0 where stripe is present
-        - profile
-            triangle value, =1.0 in the very middle, =0.0 at stripe edges
+        - stripe
+            triangle shaped stripe profile.
+            =1.0 at the very middle, =0.0 at edges and over gap
     """
-
-    # Formulas:
-    #     val = zigzag(t, period) + w
-    #     strobe = val > 0
-    #     triangle = max(0, val/w)
+    # Formula:
+    #     stripe = max(0, zigzag(t, period)/w + 1)
 
     bl_idname = "fabricomatic.stripes"
     bl_label = "stripes"
@@ -271,110 +267,20 @@ class FMstripes(ShaderSharedNodeBase):
     )
     out_sockets = (
         ('NodeSocketFloat', 'strobe'),
-        ('NodeSocketFloat', 'profile'),
     )
 
     def build_tree(self):
         w = self.math('MULTIPLY', (self.inp, 'thickness'), 0.5)
-        z = self.node(
+        zigzag = self.node(
             FMzigzag,
-            {'t': (self.inp, 't'),
-             'period': (self.inp, 'period'),
-             'shift': 0.5,
-             'min': -1.0,
-             'max': 0.0})
-        val = self.math('ADD', z, w)
+            inputs={
+                't': (self.inp, 't'),
+                'period': (self.inp, 'period'),
+                'shift': 0.5,
+                'min': -1.0,
+                'max': 0.0,
+            })
 
-        strobe = self.math(
-            'GREATER_THAN',
-            val,
-            0.0,
-            name='strobe')
-
-        triangle = self.math(
-            'MAXIMUM',
-            self.math(
-                'DIVIDE',
-                val,
-                w),
-            0.0,
-            name='triangle')
+        strobe = self.math('MAXIMUM', 0.0, self.math('ADD', 1.0, self.math('DIVIDE', zigzag, w)))
 
         self.link(strobe, (self.out, 'strobe'))
-        self.link(triangle, (self.out, 'profile'))
-
-
-class FMWeaveProfiling(ShaderVolatileNodeBase):
-    """Converting triangle profile to decent shape.
-
-    Simply maps values 0..1 to some predefined curve.
-    It can be done with curves, but it's hard to make them smooth at edges.
-
-    """
-    bl_idname = "fabricomatic.weave_profiling"
-    bl_label = "weave profiling"
-
-    inp_sockets = (
-        ('NodeSocketColor', 'profiles'),
-    )
-    out_sockets = (
-        ('NodeSocketColor', 'profiles'),
-    )
-
-    PROFILE_SHAPES = (
-        ('NONE', 'None', "Unmodified", 0),
-        ('FLAT', 'Flat', "Flatten", 1),
-        ('ROUND', 'Round', "Semicircular profile", 2),
-        ('SINE', 'Sine', "Sine profile (full period)", 3),
-        ('HSINE', 'Halfsine', "Sine profile (half period)", 4),
-    )
-
-    profile_shape: bpy.props.EnumProperty(
-        name="Profle shape",
-        items=PROFILE_SHAPES,
-        update=lambda s, c: s.tweak_profile(),
-        default='ROUND')
-
-    def init(self, context):
-        super().init(context)
-        self.tweak_profile()
-
-    def build_tree(self):
-        profiles_rgb = self.rgb((self.inp, 'profiles'))
-
-        self.col(
-            self.math('GREATER_THAN', (profiles_rgb, 'R'), 0.0),
-            self.math('GREATER_THAN', (profiles_rgb, 'G'), 0.0),
-            name='flat')
-
-        self.col(
-            self.node(FMcircle, ((profiles_rgb, 'R'),)),
-            self.node(FMcircle, ((profiles_rgb, 'G'),)),
-            name='round')
-
-        self.col(
-            self.node(FMcosine, {'t': (profiles_rgb, 'R'), 'period': 2.0, 'shift': -0.5}),
-            self.node(FMcosine, {'t': (profiles_rgb, 'G'), 'period': 2.0, 'shift': -0.5}),
-            name='sine')
-
-        self.col(
-            self.node(FMcosine, {'t': (profiles_rgb, 'R'), 'period': 4.0, 'shift': -0.25}),
-            self.node(FMcosine, {'t': (profiles_rgb, 'G'), 'period': 4.0, 'shift': -0.25}),
-            name='hsine')
-
-        self.link((self.inp, 'profiles'), (self.out, 'profiles'))
-
-    def tweak_profile(self):
-        if self.profile_shape == 'ROUND':
-            self.link('round', (self.out, 'profiles'))
-        elif self.profile_shape == 'SINE':
-            self.link('sine', (self.out, 'profiles'))
-        elif self.profile_shape == 'HSINE':
-            self.link('hsine', (self.out, 'profiles'))
-        elif self.profile_shape == 'FLAT':
-            self.link('flat', (self.out, 'profiles'))
-        else:
-            self.link((self.inp, 'profiles'), (self.out, 'profiles'))
-
-    def draw_buttons(self, _context, layout):
-        layout.prop(self, 'profile_shape', text="")

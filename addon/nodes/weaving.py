@@ -26,7 +26,7 @@ And this may produce other more ugly artefacts, not yet fixed.
 import bpy
 
 from .base import ShaderSharedNodeBase, ShaderVolatileNodeBase
-from .utils import FMmixfloats, FMfmodulo, FMcosine, FMstripes, FMWeaveProfiling
+from .utils import FMmixfloats, FMfmodulo, FMcosine, FMstripes, FMcircle
 
 
 class FMWeaveScaling(ShaderVolatileNodeBase):
@@ -109,6 +109,8 @@ class FMWeaveScaling(ShaderVolatileNodeBase):
 class FMWeaveStrobing(ShaderVolatileNodeBase):
     """Generating periodic stripes for warp and weft.
 
+    Outputs maps indicating placement of stripes.
+
     Options:
         balanced
             Use the same thickness for warp and weft scaling
@@ -121,12 +123,18 @@ class FMWeaveStrobing(ShaderVolatileNodeBase):
 
     Outputs:
         strobes
-            Boolean mask indicating presence of warp or weft
+            Map of stripes as triangle shaped profiles.
+            Maximum value =1.0 at the very middle of stripes, down to =0.0 at edges and over gaps
+        mask
+            Map of stripes as binary values.
+            Value =1.0 over stripes and =0.0 over gaps
+        profile
+            Map of stripes with semicircular profile.
+            Value is normalized to have height =1.0
+            To make it perfectly round (in texture scale) it should be scaled down
+            proportinally to thickness (by overlaying node) and overall weaving scale (by bump/displacement node).
         alpha
-            Boolean mask of stripes/gaps
-        profiles
-            Triangle-shaped bump elevation of each stripe.
-            It has value 1.0 in the middle of stripes, and 0.0 at its edges.
+            Overall binary transparency mask
     """
     bl_idname = "fabricomatic.weave_strobing"
     bl_label = "weave strobing"
@@ -139,6 +147,7 @@ class FMWeaveStrobing(ShaderVolatileNodeBase):
     )
     out_sockets = (
         ('NodeSocketColor', 'strobes'),
+        ('NodeSocketColor', 'mask'),
         ('NodeSocketColor', 'profiles'),
         ('NodeSocketFloat', 'alpha'),
     )
@@ -148,12 +157,6 @@ class FMWeaveStrobing(ShaderVolatileNodeBase):
         description="Equal paramewters for warp and weft",
         default=True,
         update=lambda s, c: s.tweak_balance())
-
-    profile_shape: bpy.props.EnumProperty(
-        name="Profle shape",
-        items=FMWeaveProfiling.PROFILE_SHAPES,
-        update=lambda s, c: s.tweak_profile(),
-        default='ROUND')
 
     def init(self, context):
         super().init(context)
@@ -167,39 +170,39 @@ class FMWeaveStrobing(ShaderVolatileNodeBase):
         w_wft = self.route('th_wft')
 
         stripes_wrp = self.node(
-            FMstripes,
-            name='wrp_stripes',
-            inputs={
-                't': (xyz, 'X'),
-                'period': 1.0,
-                'thickness': w_wrp
+            FMstripes,            
+            {'t': (xyz, 'X'),
+             'period': 1.0,
+             'thickness': w_wrp
             })
 
         stripes_wft = self.node(
             FMstripes,
-            name='wrp_stripes',
-            inputs={
-                't': (xyz, 'Y'),
-                'period': 1.0,
-                'thickness': w_wft
+            {'t': (xyz, 'Y'),
+             'period': 1.0,
+             'thickness': w_wft
             })
 
         strobes = self.col(
             (stripes_wft, 'strobe'),
             (stripes_wrp, 'strobe'))
 
+        mask = self.col(
+            self.math('GREATER_THAN', (stripes_wft, 'strobe'), 0),
+            self.math('GREATER_THAN', (stripes_wrp, 'strobe'), 0),
+        )
+
         profiles = self.col(
-            (stripes_wft, 'profile'),
-            (stripes_wrp, 'profile'),
-            name='profiles')
+            self.node(FMcircle, ((stripes_wft, 'strobe'),)),
+            self.node(FMcircle, ((stripes_wrp, 'strobe'),)),
+        )
 
-        profiling = self.node(FMWeaveProfiling, inputs={'profiles': profiles}, name='profiling')
-
-        mask = self.node('ShaderNodeSeparateHSV', inputs={0: strobes})
+        alpha = (self.node('ShaderNodeSeparateHSV', inputs={0: mask}), 'V')
 
         self.link(strobes, (self.out, 'strobes'))
-        self.link(profiling, (self.out, 'profiles'))
-        self.link((mask, 'V'), (self.out, 'alpha'))
+        self.link(mask, (self.out, 'mask'))
+        self.link(profiles, (self.out, 'profiles'))
+        self.link(alpha, (self.out, 'alpha'))
 
     def tweak_balance(self):
         self.inputs['thickness'].enabled = self.balanced
@@ -212,16 +215,8 @@ class FMWeaveStrobing(ShaderVolatileNodeBase):
             self.link((self.inp, 'warp thickness'), 'th_wrp')
             self.link((self.inp, 'weft thickness'), 'th_wft')
 
-    def tweak_profile(self):
-        if self.profile_shape == 'NONE':
-            self.link('profiles', (self.out, 'profiles'))
-        else:
-            self.link('profiling', (self.out, 'profiles'))
-            self.nodes['profiling'].profile_shape = self.profile_shape
-
     def draw_buttons(self, _context, layout):
         layout.prop(self, 'balanced')
-        layout.prop(self, 'profile_shape')
 
 
 class FMWeaveBulging(ShaderVolatileNodeBase):
