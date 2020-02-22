@@ -3,7 +3,6 @@ import bpy
 import bpy.utils.previews
 
 from .nodes import utils, weaving
-from . import samples
 
 bl_info = {
     'name': "Fabric-o-matic",
@@ -61,7 +60,6 @@ class AddMenu(MenuBase, bpy.types.Menu):
 
     def draw(self, _context):
         layout = self.layout
-        layout.operator(samples.BrowseLibraryOp.bl_idname, text="Browse library...")
         layout.menu(AddNodeMenu.bl_idname)
         layout.menu(AddUtilMenu.bl_idname)
 
@@ -90,8 +88,6 @@ classes = (
     weaving.FMWeavingJacquard,
     weaving.FMWeaveOverlaying,
     weaving.FMWeaveMasking,
-    samples.BrowseLibraryOp,
-    samples.ImportMaterialOp,
     AddNodeMenu,
     AddUtilMenu,
     AddMenu,
@@ -102,11 +98,9 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.NODE_MT_add.append(extend_add_menu)
-    samples.register()
 
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
     bpy.types.NODE_MT_add.remove(extend_add_menu)
-    samples.unregister()
