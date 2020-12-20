@@ -1,3 +1,9 @@
+
+> The project is suspended, 
+> because its complexity doesn't fit current state of Blender API
+> 
+> I'll revive it some day later.
+
 # fabric-o-matic
 
 Nodeware add-on for constructing woven fabric textures in Blender
@@ -9,11 +15,7 @@ The add-on provides set of shader nodes useful to construct procedural textures 
 The main concern is to model fabric structure and to provide maximal procedural flexibility.
 (The add-on is not very artist-friendly and does not provide ready plug-and-play textures).
 
-> The project is beta in early stages of development
->
-> Use at your own risk
->
-> Provide some feedback to make it better
+
 
 
 # Installation
