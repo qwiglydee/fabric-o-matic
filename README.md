@@ -2,6 +2,8 @@
 > The project is suspended, 
 > because its complexity doesn't fit current state of Blender API
 > 
+> (also, because I've riched limits of human mathematics)
+>
 > I'll revive it some day later.
 
 # fabric-o-matic
