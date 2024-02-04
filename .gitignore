@@ -1,0 +1,7 @@
+__pycache__/
+.*
+!/.gitignore
+!.nojekyll
+*.blend[0-9]
+
+/build/
