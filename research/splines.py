@@ -53,17 +53,9 @@ def build_curve(M, cpoints):
         i, u = wrap(t, 0, nsegs - 1)
         return powers(u, d) @ cc[i]
 
-    return curve
-
-
-def build_curve_dt(M, cpoints):
-    d = M.shape[0] - 1
-    cc = premul(M, cpoints)  # list
-    nsegs = len(cc)
-
     @np.vectorize(signature="()->(3)")
-    def tang(t):
+    def curve_dt(t):
         i, u = wrap(t, 0, nsegs - 1)
         return powers_dt(u, d) @ cc[i]
 
-    return tang
+    return curve, curve_dt
