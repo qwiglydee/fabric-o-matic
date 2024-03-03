@@ -59,3 +59,4 @@ def build_curve(M, cpoints):
         return powers_dt(u, d) @ cc[i]
 
     return curve, curve_dt
+
