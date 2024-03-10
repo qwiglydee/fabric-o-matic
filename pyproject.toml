@@ -8,6 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+fake-bpy-module = "^20240307"
 
 [tool.poetry.group.dev.dependencies]
 numpy = "^1.26.3"

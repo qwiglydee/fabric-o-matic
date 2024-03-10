@@ -207,6 +207,17 @@ files = [
 tests = ["asttokens (>=2.1.0)", "coverage", "coverage-enable-subprocess", "ipython", "littleutils", "pytest", "rich"]
 
 [[package]]
+name = "fake-bpy-module"
+version = "20240307"
+description = "Collection of the fake Blender Python API module for the code completion."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "fake-bpy-module-20240307.tar.gz", hash = "sha256:4d5cdc094ab2d67b473157744112c96af131efcec329de65f16ef21881950ad2"},
+    {file = "fake_bpy_module-20240307-py3-none-any.whl", hash = "sha256:1a7f4cc562d52fbf40e41cceee18480788455be68a62ce102e04ee5eabfb8106"},
+]
+
+[[package]]
 name = "fastjsonschema"
 version = "2.19.1"
 description = "Fastest Python implementation of JSON schema"
@@ -1082,4 +1093,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d540cdb4955fa8d483d2942c151bb590cbdab351fdaae4c65b26ab738eeef3b4"
+content-hash = "4e8db64a7bdd1674a7bf0381d051eef1d6e3f12e8b760b93d380fd8209a36ad9"

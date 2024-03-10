@@ -1,0 +1,80 @@
+matrix premul(point p0, point p1, point p2)
+{
+    matrix m = matrix(
+        1.0, 0.0, 0.0, 0.0,
+        -2.0, 2.0, 0.0, 0.0,
+        1.0, -2.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 0.0
+    );
+
+    matrix p = matrix(
+        p0.x, p0.y, p0.z, 0.0,
+        p1.x, p1.y, p1.z, 0.0,
+        p2.x, p2.y, p2.z, 0.0,
+        0.0, 0.0, 0.0, 0.0
+    );
+
+    return m * p;
+}
+
+point row(matrix M, int r)
+{
+    return point(M[r][0], M[r][1], M[r][2]);
+}
+
+
+point curve(matrix Q, float t)
+{
+    return row(Q, 0) + row(Q, 1) * t + row(Q, 2) * t * t;
+}
+
+point tangent(matrix Q, float t)
+{
+    return row(Q, 1) + row(Q, 2) * 2 * t;
+}
+
+float project_1(point p0, point p1, point p)
+{
+    vector q1 = p1 - p0;
+    return dot(p - p0, q1) / dot(q1, q1);
+}
+
+float project(matrix Q, point p)
+{
+    point pm1 = curve(Q, 0);
+    point pm = curve(Q, 0.5);
+    point pm2 = curve(Q, 1.0);
+
+    float t1 = project_1(pm1, pm, p);
+    float t2 = project_1(pm, pm2, p);
+
+    if (t1 < 1) return t1 * 0.5;
+    if (t2 > 0) return t2 * 0.5 + 0.5;
+    return 0.5;
+}
+
+shader bezier
+    [[ string label="SDF for Bezier 2" ]]
+(
+    point UV = vector(0, 0, 0),
+    point Pi = vector(0, 0, 0),
+    point Pc = vector(0, 0, 0),
+    point Po = vector(0, 0, 0),
+    output float t = 0,
+    output float dist = 0,
+    output float sdist = 0
+)
+{
+    matrix Q = premul(Pi, Pc, Po);
+    t = project(Q, UV);
+
+    point prj = curve(Q, t);
+    vector tng = tangent(Q, t);
+
+    vector dst = UV - prj;
+
+    float cross_z = dst.x * tng.y - dst.y * tng.x;
+
+    dist = length(dst);
+    sdist = sign(cross_z) * dist;
+}
