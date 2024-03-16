@@ -1,6 +1,7 @@
 import bpy
 
-from .utils import load_shader
+from . import utils
+
 
 class AddBezier(bpy.types.Operator):
     bl_idname = "nodes.bezier_sdf"
@@ -8,13 +9,15 @@ class AddBezier(bpy.types.Operator):
     bl_description = "Add bezier projection node"
 
     def execute(self, context):
-        text = load_shader("bezier2.osl")
         bpy.ops.node.add_node(type=bpy.types.ShaderNodeScript.__name__)
         node = context.active_node
-        node.script = text
-        node.bl_label="Bezier SDF"
-        return {'FINISHED'}
+        node.bl_label = "Bezier SDF"
+        # node.mode = "INTERNAL"
+        # node.script = utils.load_shader("bezier2.osl")
+        node.mode = "EXTERNAL"
+        node.filepath = utils.shader_filepath("bezier2.osl")
+        return {"FINISHED"}
 
     @classmethod
     def poll(cls, context):
-        return context.engine == 'CYCLES' and context.scene.cycles.shading_system
+        return context.engine == "CYCLES" and context.scene.cycles.shading_system
