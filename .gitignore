@@ -1,0 +1,7 @@
+.*
+!.gitignore
+!.gitattributes
+!.editorconfig
+__pycache__/
+*.blend1
+var/
