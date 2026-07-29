@@ -1,6 +1,7 @@
 from collections.abc import Iterable, Iterator
 from typing import Any
 
+import math
 import numpy as np
 from numpy.typing import NDArray, ArrayLike
 
@@ -42,3 +43,8 @@ def unflat(v: npvec) -> npvec:
 
 def unflat_np(vv: NDArray) -> NDArray:
     return np.vstack((vv.T, np.zeros(vv.shape[0]))).T
+
+
+def normalize(v: npvec) -> npvec:
+    l: float = 1 / math.sqrt(np.dot(v, v))
+    return v * l
