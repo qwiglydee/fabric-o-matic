@@ -11,10 +11,10 @@ Nothing to see yet.
 
 Base math for yarn generation
 
-- [ ] Generic b-spline stuff
-- [ ] SDF
-    - [ ] B(2)ezier 2D segment
-    - [ ] B(2)spline 2D continuous
+- [x] Generic b-spline stuff
+- [x] SDF
+    - [x] B(2)ezier 2D segment
+    - [x] B(2)spline 2D continuous
 - [ ] SCF
     - calculate cylindrical params from SDF
     - recreate 3D half-cylinder solid
