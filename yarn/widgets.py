@@ -1,6 +1,8 @@
+from collections.abc import Callable
+
 import numpy as np
 from numpy.typing import NDArray
-from traitlets import Integer, Unicode, Instance, Callable, observe
+from traitlets import Integer, Unicode, Instance, observe
 from ipywidgets import widgets as wg
 import plotly.graph_objects as go
 
@@ -11,18 +13,20 @@ class Curve3DView(wg.Box):
     """
 
     title = Unicode()
-    points = Instance[NDArray | None](np.ndarray, allow_none=True)
+    params = Instance(object, allow_none=True)
 
-    curve_fn = Callable(allow_none=True)
+    curve_fn: Callable
+    flow_fn: Callable
     discr_curve = Integer(default_value=100)
-
-    flow_fn = Callable(allow_none=True)
     discr_flow = Integer(default_value=5)
 
     figure: go.FigureWidget
     out: wg.Output
 
-    def __init__(self, title: str, **kwargs):
+    def __init__(self, title: str, curve_fn: Callable, flow_fn: Callable, **kwargs):
+        self.curve_fn = curve_fn
+        self.flow_fn = flow_fn
+
         self.figure = go.FigureWidget(
             layout=go.Layout(
                 autosize=False,
@@ -69,38 +73,39 @@ class Curve3DView(wg.Box):
     def upd_title(self, change):
         self.figure.update_layout(title=self.title)
 
-    @observe("points")
+    @observe("params")
     def render_points(self, _):
         selector = {"name": "controls"}
-        if self.points is None:
+        if self.params is None or not hasattr(self.params, "controls"):
             self.figure.update_traces(dict(x=[], y=[], z=[]), selector)
             return
 
-        controls = self.points.T
+        assert hasattr(self.params, "controls")
+        controls = self.params.controls.T  # type: ignore
         self.figure.update_traces(dict(x=controls[0], y=controls[1], z=controls[2]), selector)
 
-    @observe("curve_fn", "discr_curve")
+    @observe("params", "discr_curve")
     def render_curve(self, _):
         selector = {"name": "curve"}
-        if self.curve_fn is None:
+        if self.params is None:
             self.figure.update_traces(dict(x=[], y=[], z=[]), selector)
             return
 
         tspace = np.linspace(0.0, 1.0, self.discr_curve)
-        points = self.curve_fn(tspace).T
+        points = self.curve_fn(self.params, tspace).T
         self.figure.update_traces(dict(x=points[0], y=points[1], z=points[2], customdata=tspace), selector)
 
-    @observe("flow_fn", "discr_flow")
+    @observe("params", "discr_flow")
     def render_flow(self, _):
         selector = {"name": "flow"}
-        if self.flow_fn is None or self.curve_fn is None:
+        if self.params is None:
             self.figure.update_traces(dict(x=[], y=[], z=[], u=[], v=[], w=[]), selector)
             return
 
         tsample = np.linspace(0.0, 1.0, self.discr_flow)
 
-        points = self.curve_fn(tsample).T
-        flowdir = self.flow_fn(tsample).T
+        points = self.curve_fn(self.params, tsample).T
+        flowdir = self.flow_fn(self.params, tsample).T
         flowmag = np.sqrt((flowdir * flowdir).sum(axis=0))
 
         self.figure.update_traces(
@@ -124,17 +129,21 @@ class Curve2DView(wg.Box):
 
     title = Unicode()
     points = Instance[NDArray | None](np.ndarray, allow_none=True)
+    params = Instance(object, allow_none=True)
 
-    curve_fn = Callable(allow_none=True)
+    curve_fn: Callable
+    flow_fn: Callable
+
     discr_curve = Integer(default_value=100)
-
-    flow_fn = Callable(allow_none=True)
     discr_flow = Integer(default_value=5)
 
     figure: go.FigureWidget
     out: wg.Output
 
-    def __init__(self, title: str, **kwargs):
+    def __init__(self, title: str, curve_fn: Callable, flow_fn: Callable, **kwargs):
+        self.curve_fn = curve_fn
+        self.flow_fn = flow_fn
+
         self.figure = go.FigureWidget(
             layout=go.Layout(
                 autosize=False,
@@ -179,38 +188,39 @@ class Curve2DView(wg.Box):
     def upd_title(self, change):
         self.figure.update_layout(title=self.title)
 
-    @observe("points")
+    @observe("params")
     def render_points(self, _):
         selector = {"name": "controls"}
-        if self.points is None:
+        if self.params is None or not hasattr(self.params, "controls"):
             self.figure.update_traces(dict(x=[], y=[]), selector)
             return
 
-        controls = self.points.T
+        assert hasattr(self.params, "controls")
+        controls = self.params.controls.T  # type: ignore
         self.figure.update_traces(dict(x=controls[0], y=controls[1]), selector)
 
-    @observe("curve_fn", "discr_curve")
+    @observe("params", "discr_curve")
     def render_curve(self, _):
         selector = {"name": "curve"}
-        if self.curve_fn is None:
+        if self.params is None:
             self.figure.update_traces(dict(x=[], y=[]), selector)
             return
 
         tspace = np.linspace(0.0, 1.0, self.discr_curve)
-        points = self.curve_fn(tspace).T
+        points = self.curve_fn(self.params, tspace).T
         self.figure.update_traces(dict(x=points[0], y=points[1], customdata=tspace), selector)
 
-    @observe("flow_fn", "discr_flow")
+    @observe("params", "discr_flow")
     def render_flow(self, _):
         selector = {"name": "flow"}
-        if self.flow_fn is None or self.curve_fn is None:
+        if self.params is None:
             self.figure.update_traces(dict(x=[], y=[], customdata=[], marker=None), selector)
             return
 
         tsample = np.linspace(0.0, 1.0, self.discr_flow)
 
-        points = self.curve_fn(tsample).T
-        flowdir = self.flow_fn(tsample).T
+        points = self.curve_fn(self.params, tsample).T
+        flowdir = self.flow_fn(self.params, tsample).T
         flowmag = np.sqrt((flowdir * flowdir).sum(axis=0))
         flowang = np.arctan2(flowdir[1], flowdir[0])
 
