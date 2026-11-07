@@ -3,3 +3,4 @@
 !.gitattributes
 !.editorconfig
 __pycache__/
+/var/
