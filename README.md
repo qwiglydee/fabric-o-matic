@@ -12,12 +12,17 @@ Nothing to see yet.
 Base math for yarn generation
 
 - [x] Generic b-spline stuff
-- [x] SDF
-    - [x] B(2)ezier 2D segment
-    - [x] B(2)spline 2D continuous
-- [ ] SCF
-    - calculate cylindrical params from SDF
-    - recreate 3D half-cylinder solid
+- [x] Field mapping
+    - [x] Bezier segment
+    - [ ] Bspline continuous
+- [ ] Normal mapping
+    - [ ] yarn course
+    - [ ] yarn thickness
+- [ ] Cylindrical UV unwrapping
+    - [ ] try cyl angular coords $\rho = r, \phi, z = t$
+        - $V=z, U = \phi$
+    - [ ] try to map with rel disquance
+        - $V=z, U = d^2/r^2$
 
 ## Fibers
 
