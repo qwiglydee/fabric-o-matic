@@ -2,9 +2,12 @@ from collections.abc import Callable
 
 import numpy as np
 from numpy.typing import NDArray
-from traitlets import Integer, Float, Unicode, Instance, Tuple, observe
+from traitlets import Instance, Tuple, observe
 from ipywidgets import widgets as wg
 import plotly.graph_objects as go
+from plotly import colors
+
+from field import Field
 
 
 class Curve3DView(wg.Box):
@@ -218,6 +221,262 @@ class Curve2DView(wg.Box):
                 y=points[1],
                 marker=dict(angle=90 - flowang * 180 / np.pi, size=24.0 * flowmag),
                 customdata=np.stack((self.tspace_flow, flowmag)).T,
+            ),
+            selector,
+        )
+
+
+class FieldView(wg.Box):
+    """View 3d and 2d curve and projection fields"""
+
+    controls = Instance[NDArray | None](np.ndarray, allow_none=True)
+    curve = Instance[NDArray | None](np.ndarray, allow_none=True)
+    field = Instance[Field | None](Field, allow_none=True)
+
+    poke = Instance[NDArray | None](np.ndarray, allow_none=True)
+    picking: Callable
+    picked = Instance[Field | None](Field, allow_none=True)
+
+    figure3d: go.FigureWidget
+    figure2d: go.FigureWidget
+
+    def __init__(self, **kwargs):
+        self.figure3d = go.FigureWidget(
+            layout=go.Layout(
+                autosize=False,
+                height=720,
+                margin=dict(t=16, b=16, l=16, r=16),
+                scene=dict(
+                    aspectmode="data",
+                    camera=dict(eye=dict(x=0, y=0, z=2), up=dict(x=0, y=1, z=0), center=dict(x=0, y=0, z=0)),
+                ),
+            ),
+            data=[
+                go.Scatter3d(
+                    name="controls",
+                    mode="markers+lines",
+                    marker=dict(symbol="circle-open", color="black"),
+                    opacity=0.25,
+                    hoverinfo="skip",
+                ),
+                go.Scatter3d(
+                    name="curve",
+                    mode="lines",
+                    hovertemplate="xyz: %{x:.03f} %{y:.03f} %{z:.03f}",
+                    line=dict(width=4, color="black"),
+                    showlegend=True,
+                ),
+                go.Scatter3d(
+                    name="curve2d",
+                    mode="lines",
+                    hovertemplate="xy: %{x:.03f} %{y:.03f}",
+                    line=dict(width=4, color="gray", dash="dash"),
+                    showlegend=True,
+                ),
+                go.Surface(
+                    name="sdist",
+                    x=[],
+                    y=[],
+                    z=[],
+                    colorscale=colors.diverging.RdBu_r,
+                    cmin=-1.0,
+                    cmax=+1.0,
+                    showscale=False,
+                    opacity=0.75,
+                    showlegend=True,
+                ),
+                go.Scatter3d(
+                    name="poke",
+                    mode="markers",
+                    marker=dict(symbol="square", color="magenta"),
+                    showlegend=False,
+                ),
+                go.Scatter3d(
+                    name="pick",
+                    mode="markers+text",
+                    marker=dict(symbol="circle", color="magenta"),
+                    showlegend=False,
+                    hovertemplate="t: %{customdata[0]:.03f}<br>dst: %{customdata[1]:.03f}",
+                ),
+            ],
+        )
+        self.figure2d = go.FigureWidget(
+            layout=go.Layout(
+                autosize=False,
+                height=720,
+                margin=dict(t=16, b=16, l=16, r=16),
+                scene_aspectmode="data",
+            ),
+            data=[
+                go.Scatter(
+                    name="controls",
+                    mode="markers+lines",
+                    marker=dict(symbol="circle-open", color="black"),
+                    opacity=0.25,
+                    hoverinfo="skip",
+                ),
+                go.Scatter(
+                    name="curve",
+                    mode="lines",
+                    hovertemplate="xy: %{x:.03f} %{y:.03f}",
+                    line=dict(width=4, color="black"),
+                    showlegend=True,
+                ),
+                go.Heatmap(
+                    name="sdist",
+                    zmid=0.0,
+                    colorscale=colors.diverging.RdBu_r,
+                    showscale=False,
+                    showlegend=True,
+                    hovertemplate="xy: %{x:.03f} %{y:.03f}<br>dist: %{z:.03f}",
+                ),
+                go.Scatter(
+                    name="poke",
+                    mode="markers",
+                    marker=dict(symbol="square", color="magenta"),
+                    showlegend=False,
+                ),
+                go.Scatter(
+                    name="pick",
+                    mode="markers+text",
+                    marker=dict(symbol="circle", color="magenta", size=8),
+                    showlegend=False,
+                    hovertemplate="t: %{customdata[0]:.03f}<br>dst: %{customdata[1]:.03f}",
+                ),
+            ],
+        )
+
+        super().__init__(children=[self.figure3d, self.figure2d], **kwargs)
+
+        self.figure2d.data[-3].on_click(self.on_click)  # type: ignore
+        self.figure3d.data[-3].on_click(self.on_click)  # type: ignore
+
+    @observe("controls")
+    def update_controls(self, _):
+        selector = {"name": "controls"}
+
+        if self.controls is None:
+            self.figure3d.update_traces(dict(x=[], y=[], z=[], customdata=[]), selector)
+            self.figure2d.update_traces(dict(x=[], y=[], customdata=[]), selector)
+            return
+
+        assert self.controls.shape[1] == 3, "expecting 3D points"
+
+        coords = self.controls.T
+        self.figure3d.update_traces(dict(x=coords[0], y=coords[1], z=coords[2]), selector)
+        self.figure2d.update_traces(dict(x=coords[0], y=coords[1]), selector)
+
+        self.figure3d.update_layout(scene_camera_eye_z=4)
+
+    @observe("curve")
+    def update_curve(self, _):
+        selector = {"name": "curve"}
+        selector2 = {"name": "curve2d"}
+
+        if self.curve is None:
+            self.figure3d.update_traces(dict(x=[], y=[], z=[], customdata=[]), selector)
+            self.figure2d.update_traces(dict(x=[], y=[], customdata=[]), selector)
+            return
+
+        coords = self.curve.T
+        self.figure3d.update_traces(dict(x=coords[0], y=coords[1], z=coords[2]), selector)
+        self.figure3d.update_traces(dict(x=coords[0], y=coords[1], z=np.zeros(coords.shape[1])), selector2)
+        self.figure2d.update_traces(dict(x=coords[0], y=coords[1]), selector)
+
+        self.figure3d.update_layout(scene_camera_eye_z=4)
+
+    @observe("field")
+    def update_field(self, _):
+        self.update_sdist()
+        self.update_flow()
+        self.poke = None
+        self.picked = None
+
+    def update_sdist(self):
+        selector = {"name": "sdist"}
+        if self.field is None:
+            self.figure3d.update_traces(dict(x=[], y=[], z=[], customdata=[]), selector)
+            self.figure2d.update_traces(dict(x=[], y=[], z=[], customdata=[]), selector)
+            return
+
+        lattice = self.field.smp
+        values = self.field.sdist
+
+        self.figure3d.update_traces(
+            dict(
+                x=lattice[:, :, 0],
+                y=lattice[:, :, 1],
+                z=np.zeros(self.field.shape),
+                surfacecolor=values,
+            ),
+            selector,
+        )
+
+        lattice = self.field.smp.reshape(-1, 2)
+        values = self.field.sdist.flatten()
+
+        self.figure2d.update_traces(
+            dict(
+                x=lattice[:, 0],
+                y=lattice[:, 1],
+                z=values,
+            ),
+            selector,
+        )
+
+    def update_flow(self):
+        pass
+
+    def on_click(self, trace, points, mouse):
+        if self.controls is None or len(points.point_inds) == 0:
+            self.poke = None
+            return
+        self.poke = np.array([points.xs[0], points.ys[0]])
+
+        if self.picking:
+            self.picked = self.picking(self.poke)
+
+    @observe("poke")
+    def update_poke(self, _):
+        selector = {"name": "poke"}
+        if self.poke is None:
+            self.figure3d.update_traces(dict(x=[], y=[], z=[], customdata=[]), selector)
+            self.figure2d.update_traces(dict(x=[], y=[], customdata=[]), selector)
+            return
+
+        coords = self.poke[:, None]
+
+        self.figure3d.update_traces(dict(x=coords[0], y=coords[1], z=[0], customdata=[]), selector)
+        self.figure2d.update_traces(dict(x=coords[0], y=coords[1], customdata=[]), selector)
+
+    @observe("picked")
+    def update_picked(self, _):
+        selector = {"name": "pick"}
+        if self.picked is None:
+            self.figure3d.update_traces(dict(x=[], y=[], z=[], customdata=[]), selector)
+            self.figure2d.update_traces(dict(x=[], y=[], customdata=[]), selector)
+            return
+
+        markers = self.picked.pnt
+        info = np.stack((self.picked.arc, self.picked.sdist)).T
+        labels = [f"t: {t - 0.5:.03f}" for t in self.picked.arc]
+
+        self.figure3d.update_traces(
+            dict(
+                x=markers[:, 0],
+                y=markers[:, 1],
+                z=np.zeros(self.picked.shape),
+                customdata=info,
+                text=labels,
+            ),
+            selector,
+        )
+        self.figure2d.update_traces(
+            dict(
+                x=markers[:, 0],
+                y=markers[:, 1],
+                customdata=info,
+                text=labels,
             ),
             selector,
         )
