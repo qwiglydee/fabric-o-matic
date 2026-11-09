@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 import numpy as np
 from numpy.typing import NDArray
-from traitlets import Instance, Tuple, observe
+from traitlets import Float, Instance, Tuple, observe
 from ipywidgets import widgets as wg
 import plotly.graph_objects as go
 from plotly import colors
@@ -92,7 +92,7 @@ class Curve3DView(wg.Box):
             self.figure.update_traces(dict(x=[], y=[], z=[], customdata=[]), selector)
             return
 
-        curve = self.plotting_curve(self.tspace_curve, self.params).T
+        curve = self.plotting_curve(self.params, self.tspace_curve).T
         self.figure.update_traces(dict(x=curve[0], y=curve[1], z=curve[2], customdata=self.tspace_curve), selector)
 
     @observe("params", "tspace_flow")
@@ -102,8 +102,8 @@ class Curve3DView(wg.Box):
             self.figure.update_traces(dict(x=[], y=[], z=[], u=[], v=[], w=[]), selector)
             return
 
-        points = self.plotting_curve(self.tspace_flow, self.params).T
-        flowdir = self.plotting_flow(self.tspace_flow, self.params).T
+        points = self.plotting_curve(self.params, self.tspace_flow).T
+        flowdir = self.plotting_flow(self.params, self.tspace_flow).T
         flowmag = np.sqrt((flowdir * flowdir).sum(axis=0))
 
         self.figure.update_traces(
@@ -200,7 +200,7 @@ class Curve2DView(wg.Box):
             self.figure.update_traces(dict(x=[], y=[], customdata=[]), selector)
             return
 
-        curve = self.plotting_curve(self.tspace_curve, self.params).T
+        curve = self.plotting_curve(self.params, self.tspace_curve).T
         self.figure.update_traces(dict(x=curve[0], y=curve[1], customdata=self.tspace_curve), selector)
 
     @observe("params", "tspace_flow")
@@ -210,8 +210,8 @@ class Curve2DView(wg.Box):
             self.figure.update_traces(dict(x=[], y=[], customdata=[], marker=None), selector)
             return
 
-        points = self.plotting_curve(self.tspace_flow, self.params).T
-        flowdir = self.plotting_flow(self.tspace_flow, self.params).T
+        points = self.plotting_curve(self.params, self.tspace_flow).T
+        flowdir = self.plotting_flow(self.params, self.tspace_flow).T
         flowmag = np.sqrt((flowdir * flowdir).sum(axis=0))
         flowang = np.arctan2(flowdir[1], flowdir[0])
 
@@ -224,6 +224,13 @@ class Curve2DView(wg.Box):
             ),
             selector,
         )
+
+
+from collections.abc import Callable
+from traitlets import Instance, Tuple, observe
+from ipywidgets import widgets as wg
+import plotly.graph_objects as go
+from plotly import colors
 
 
 class FieldView(wg.Box):
@@ -284,6 +291,7 @@ class FieldView(wg.Box):
                     showscale=False,
                     opacity=0.75,
                     showlegend=True,
+                    hovertemplate="t: %{customdata[0]:.03f}<br>xy: %{x:.03f} %{y:.03f}<br>dist: %{z:.03f}",
                 ),
                 go.Scatter3d(
                     name="poke",
@@ -328,7 +336,7 @@ class FieldView(wg.Box):
                     colorscale=colors.diverging.RdBu_r,
                     showscale=False,
                     showlegend=True,
-                    hovertemplate="xy: %{x:.03f} %{y:.03f}<br>dist: %{z:.03f}",
+                    hovertemplate="t: %{customdata[0]:.03f}<br>xy: %{x:.03f} %{y:.03f}<br>dist: %{z:.03f}",
                 ),
                 go.Scatter(
                     name="poke",
@@ -408,18 +416,20 @@ class FieldView(wg.Box):
                 y=lattice[:, :, 1],
                 z=np.zeros(self.field.shape),
                 surfacecolor=values,
+                # customdata=np.stack((self.field.arc.flatten(), values.flatten())).T,
             ),
             selector,
         )
 
-        lattice = self.field.smp.reshape(-1, 2)
-        values = self.field.sdist.flatten()
+        lattice = lattice.reshape(-1, 2)
+        values = values.flatten()
 
         self.figure2d.update_traces(
             dict(
                 x=lattice[:, 0],
                 y=lattice[:, 1],
                 z=values,
+                customdata=np.stack((self.field.arc.flatten(), values)).T,
             ),
             selector,
         )
@@ -433,7 +443,7 @@ class FieldView(wg.Box):
             return
         self.poke = np.array([points.xs[0], points.ys[0]])
 
-        if self.picking:
+        if self.picking is not None:
             self.picked = self.picking(self.poke)
 
     @observe("poke")
