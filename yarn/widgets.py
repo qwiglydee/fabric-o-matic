@@ -241,7 +241,7 @@ class FieldView(wg.Box):
     field = Instance[Field | None](Field, allow_none=True)
 
     poke = Instance[NDArray | None](np.ndarray, allow_none=True)
-    picking: Callable
+    picking: Callable | None = None
     picked = Instance[Field | None](Field, allow_none=True)
 
     figure3d: go.FigureWidget
@@ -277,7 +277,7 @@ class FieldView(wg.Box):
                     name="curve2d",
                     mode="lines",
                     hovertemplate="xy: %{x:.03f} %{y:.03f}",
-                    line=dict(width=4, color="gray", dash="dash"),
+                    line=dict(width=4, color="black", dash="dash"),
                     showlegend=True,
                 ),
                 go.Surface(
@@ -305,6 +305,14 @@ class FieldView(wg.Box):
                     marker=dict(symbol="circle", color="magenta"),
                     showlegend=False,
                     hovertemplate="t: %{customdata[0]:.03f}<br>dst: %{customdata[1]:.03f}",
+                ),
+                go.Cone(
+                    name="flow",
+                    sizemode="raw",
+                    sizeref=0.025,
+                    showscale=False,
+                    showlegend=True,
+                    hovertemplate="xy: %{x:.03f} %{y:.03f}<br>dir: %{u:.03f} %{v:.03f} %{w:.03f}<br>mag: %{customdata:.03f}",
                 ),
             ],
         )
@@ -356,8 +364,8 @@ class FieldView(wg.Box):
 
         super().__init__(children=[self.figure3d, self.figure2d], **kwargs)
 
-        self.figure2d.data[-3].on_click(self.on_click)  # type: ignore
-        self.figure3d.data[-3].on_click(self.on_click)  # type: ignore
+        self.figure2d.data[2].on_click(self.on_click)  # type: ignore
+        self.figure3d.data[3].on_click(self.on_click)  # type: ignore
 
     @observe("controls")
     def update_controls(self, _):
@@ -435,7 +443,32 @@ class FieldView(wg.Box):
         )
 
     def update_flow(self):
-        pass
+        selector = {"name": "flow"}
+        if self.field is None:
+            self.figure3d.update_traces(dict(x=[], y=[], z=[], customdata=[]), selector)
+            # self.figure2d.update_traces(dict(x=[], y=[], z=[], customdata=[]), selector)
+            return
+
+        interl = 2
+
+        coords = self.field.smp[::interl, ::interl, :].reshape(-1, 2)
+
+        dim = self.field.flw.shape[-1]
+        flows = self.field.flw[::interl, ::interl, :].reshape(-1, dim)
+        magn = np.sqrt((flows * flows).sum(axis=-1))
+
+        self.figure3d.update_traces(
+            dict(
+                x=coords[:, 0],
+                y=coords[:, 1],
+                z=np.zeros(coords.shape[0]),
+                u=flows[:, 0],
+                v=flows[:, 1],
+                w=flows[:, 2] if dim == 3 else np.zeros(flows.shape[0]),
+                customdata=magn,
+            ),
+            selector,
+        )
 
     def on_click(self, trace, points, mouse):
         if self.controls is None or len(points.point_inds) == 0:
