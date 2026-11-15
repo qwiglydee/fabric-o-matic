@@ -24,6 +24,9 @@ class Field(NamedTuple):
     def shape(self):
         return self.arc.shape
 
+    def __getitem___(self, slice):
+        return Field(self.smp[slice], self.arc[slice], self.pnt[slice], self.dsq[slice], self.flw[slice], self.sgn[slice])
+
 
 def save_field(fld: Field, filename: str):
     np.savez(filename, smp=fld.smp, arc=fld.arc, pnt=fld.pnt, dsq=fld.dsq, flw=fld.flw, sgn=fld.sgn)

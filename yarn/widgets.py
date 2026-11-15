@@ -383,13 +383,14 @@ class Field2DView(wg.Box):
         assert self.field is not None
 
         values = self.field.arc.flatten()
+        values = values - np.floor(values) - 0.5  # local t for segments
 
         self.figure.update_traces(
             dict(
                 x=lattice[:, 0],
                 y=lattice[:, 1],
                 z=values,
-                customdata=values,
+                customdata=self.field.arc.flatten(),
             ),
             {"name": "arc"},
         )
@@ -496,6 +497,7 @@ class Field3DView(wg.Box):
                     opacity=0.75,
                     hovertemplate="xy: %{x:.03f} %{y:.03f}<br>t: %{customdata[0]:.03f}<br>dist: %{customdata[1]:.03f}",
                     visible="legendonly",
+                    showlegend=True,
                 ),
                 go.Cone(
                     name="flw",
@@ -582,6 +584,7 @@ class Field3DView(wg.Box):
         assert self.field is not None
 
         values = self.field.arc.flatten()
+        values = values - np.floor(values) - 0.5  # local t for segments
 
         self.figure.update_traces(
             dict(
@@ -589,7 +592,7 @@ class Field3DView(wg.Box):
                 y=lattice[:, 1],
                 z=np.zeros(lattice.shape[0]),
                 marker=dict(color=values),
-                customdata=values,
+                customdata=self.field.arc.flatten(),
             ),
             {"name": "arc"},
         )
