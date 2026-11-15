@@ -1,10 +1,12 @@
 import numpy as np
-from field import Field
 from ipywidgets import widgets as wg
 from numpy.typing import NDArray
 from plotly import colors
 from plotly import graph_objects as go
 from traitlets import Instance, List, Tuple, Unicode, observe
+
+
+from field import Field
 
 
 class Curve2DView(wg.Box):
@@ -357,14 +359,14 @@ class Field2DView(wg.Box):
     def update_field(self, _):
         if self.field is None:
             return
-        self.render_sdf()
-        self.render_arc()
-        self.render_flw()
+        lattice = self.field.smp.reshape(-1, 2)  # (count×2)
+        self.render_sdf(lattice)
+        self.render_arc(lattice)
+        self.render_flw(lattice)
 
-    def render_sdf(self):
+    def render_sdf(self, lattice: NDArray):
         assert self.field is not None
 
-        lattice = self.gspace.reshape(-1, 2)
         values = self.field.sdist.flatten()
 
         self.figure.update_traces(
@@ -377,10 +379,9 @@ class Field2DView(wg.Box):
             {"name": "sdf"},
         )
 
-    def render_arc(self):
+    def render_arc(self, lattice):
         assert self.field is not None
 
-        lattice = self.gspace.reshape(-1, 2)
         values = self.field.arc.flatten()
 
         self.figure.update_traces(
@@ -393,9 +394,8 @@ class Field2DView(wg.Box):
             {"name": "arc"},
         )
 
-    def render_flw(self):
+    def render_flw(self, lattice):
         assert self.field is not None
-        lattice = self.gspace.reshape(-1, 2)
 
         flw = self.field.flw.reshape(-1, 3)
         mag = np.sqrt((flw * flw).sum(-1))
@@ -467,46 +467,43 @@ class Field3DView(wg.Box):
                     line=dict(color="black", width=2, dash="dash"),
                     visible=True,
                 ),
-                go.Surface(
+                go.Scatter3d(
                     name="sdf",
-                    x=[],
-                    y=[],
-                    z=[],
-                    colorscale=colors.diverging.RdBu_r,
-                    cmin=-1.4142,
-                    cmax=+1.4142,
-                    showscale=False,
+                    mode="markers",
+                    marker=go.scatter3d.Marker(
+                        symbol="circle",
+                        size=8,
+                        colorscale=colors.diverging.RdBu_r,
+                        cmin=-1.4142,
+                        cmax=+1.4142,
+                        showscale=False,
+                    ),
                     opacity=0.75,
                     showlegend=True,
-                    hovertemplate="xy: %{x:.03f} %{y:.03f}<br>t: %{customdata[0]:.03f}<br>dist: %{customdata[0]:.03f}",
+                    hovertemplate="xy: %{x:.03f} %{y:.03f}<br>t: %{customdata[0]:.03f}<br>dist: %{customdata[1]:.03f}",
                 ),
-                go.Surface(
+                go.Scatter3d(
                     name="arc",
-                    x=[],
-                    y=[],
-                    z=[],
-                    colorscale=colors.cyclical.Edge,
-                    cmin=-0.5,
-                    cmax=+0.5,
-                    showscale=False,
+                    mode="markers",
+                    marker=go.scatter3d.Marker(
+                        symbol="circle",
+                        size=8,
+                        colorscale=colors.cyclical.Edge,
+                        cmin=-0.5,
+                        cmax=+0.5,
+                        showscale=False,
+                    ),
                     opacity=0.75,
-                    showlegend=True,
-                    hovertemplate="xy: %{x:.03f} %{y:.03f}<br>t: %{customdata:.03f}",
+                    hovertemplate="xy: %{x:.03f} %{y:.03f}<br>t: %{customdata[0]:.03f}<br>dist: %{customdata[1]:.03f}",
                     visible="legendonly",
                 ),
                 go.Cone(
                     name="flw",
-                    x=[],
-                    y=[],
-                    z=[],
-                    u=[],
-                    v=[],
-                    w=[],
                     colorscale=colors.sequential.Hot,
                     cmin=1.0,
                     cmax=2.0,
                     sizemode="raw",
-                    sizeref=0.01,
+                    sizeref=0.025,
                     hovertemplate="xy: %{x:.03f} %{y:.03f}<br>dir: %{customdata[1]:.3f} %{customdata[2]:.3f} %{customdata[3]:.3f}<br>mag: %{customdata[0]:.3f}",
                     showscale=False,
                     showlegend=True,
@@ -560,48 +557,46 @@ class Field3DView(wg.Box):
     def update_field(self, _):
         if self.field is None:
             return
-        self.render_sdf()
-        self.render_arc()
-        self.render_flw()
+        lattice = self.field.smp.reshape(-1, 2)  # (count×2)
+        self.render_sdf(lattice)
+        self.render_arc(lattice)
+        self.render_flw(lattice)
 
-    def render_sdf(self):
+    def render_sdf(self, lattice):
         assert self.field is not None
 
-        lattice = self.gspace
-        values = self.field.sdist
+        values = self.field.sdist.flatten()
 
         self.figure.update_traces(
             dict(
-                x=lattice[:, :, 0],
-                y=lattice[:, :, 1],
-                z=np.zeros(lattice.shape[:-1]),
-                surfacecolor=values,
-                customdata=np.array((self.field.arc, values)).T,
+                x=lattice[:, 0],
+                y=lattice[:, 1],
+                z=-self.field.dsq.flatten(),
+                marker=dict(color=values),
+                customdata=np.array((self.field.arc.flatten(), values)).T,
             ),
             {"name": "sdf"},
         )
 
-    def render_arc(self):
+    def render_arc(self, lattice):
         assert self.field is not None
 
-        lattice = self.gspace
-        values = self.field.arc
+        values = self.field.arc.flatten()
 
         self.figure.update_traces(
             dict(
-                x=lattice[:, :, 0],
-                y=lattice[:, :, 1],
-                z=np.zeros(lattice.shape[:-1]),
-                surfacecolor=values,
-                customdata=self.field.arc,
+                x=lattice[:, 0],
+                y=lattice[:, 1],
+                z=np.zeros(lattice.shape[0]),
+                marker=dict(color=values),
+                customdata=values,
             ),
             {"name": "arc"},
         )
 
-    def render_flw(self):
+    def render_flw(self, lattice):
         assert self.field is not None
 
-        lattice = self.gspace.reshape(-1, 2)
         flw = self.field.flw.reshape(-1, 3)
         mag = np.sqrt((flw * flw).sum(-1))
 
@@ -721,8 +716,8 @@ class FieldDualView(wg.Box):
         self.poke = None
 
         if self.field is not None:
-            assert self.tspace is not None
-            assert self.field.shape == self.gspace.shape[:-1]
+            assert self.gspace is not None
+
         self.view2d.field = self.field
         self.view3d.field = self.field
 
