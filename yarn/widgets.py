@@ -678,6 +678,8 @@ class FieldDualView(wg.Box):
         super().__init__(children=[self.view2d, self.view3d])
 
         def on_click(trace, points, mouse):
+            if len(points.xs) != 1 or len(points.ys) != 1:
+                return
             self.pick = np.array((points.xs[0], points.ys[0]))
 
         for trace in self.view2d.figure.select_traces({"name": "sdf"}):
