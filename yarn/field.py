@@ -35,3 +35,10 @@ def save_field(fld: Field, filename: str):
 def load_field(filename: str):
     data = np.load(filename)
     return Field(smp=data["smp"], arc=data["arc"], pnt=data["pnt"], dsq=data["dsq"], flw=data["flw"], sgn=data["sgn"])
+
+
+def field_lattice(fld: Field):
+    xx = np.unique(np.sort(fld.smp[:, 0]))
+    yy = np.unique(np.sort(fld.smp[:, 1]))
+    X, Y = np.meshgrid(xx, yy)
+    return np.stack((X, Y)).T
