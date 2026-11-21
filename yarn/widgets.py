@@ -573,7 +573,7 @@ class Field3DView(wg.Box):
             dict(
                 x=lattice[:, 0],
                 y=lattice[:, 1],
-                z=-self.field.dsq.flatten(),
+                z=np.zeros(lattice.shape[0]),
                 marker=dict(color=values),
                 customdata=np.array((self.field.arc.flatten(), values)).T,
             ),
