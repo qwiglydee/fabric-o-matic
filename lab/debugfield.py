@@ -4,7 +4,7 @@ from traitlets import Float, Instance, Tuple, observe
 from ipywidgets import widgets as wg
 import plotly.graph_objects as go
 
-from field import Field
+from .field import Field
 
 
 def debug_field(lattice: NDArray, data: NDArray):
