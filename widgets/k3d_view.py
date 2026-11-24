@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -31,21 +33,32 @@ class K3DView(wg.VBox):
 
     fields: dict[str, NDArray]
 
-    def __init__(self, xspace: NDArray, yspace: NDArray, **kwargs):
+    def __init__(self, xspace: NDArray, yspace: NDArray, k3plot: dict | None = None, **kwargs):
         self.gspace = space_coords(xspace, yspace)
         self.gspdim = self.gspace.shape[:-1]
         xmin, xmax, xspc = space_spacing(xspace)
         ymin, ymax, yspc = space_spacing(yspace)
+        xmid, ymid = (xmin + xmax) / 2, (ymin + ymax) / 2
         xmrg, ymrg = 0.5 * xspc, 0.5 * yspc
         vxmin, vxmax, vymin, vymax = xmin - xmrg, xmax + xmrg, ymin - ymrg, ymax + ymrg
         self.bounds = xmin, xmax, ymin, ymax
         self.vbounds = vxmin, vxmax, vymin, vymax
 
         self.statusbar = wg.Label()
-        self.layers = wg.SelectMultiple(options={})
+        self.layers = wg.SelectMultiple(options={}, rows=10)
         self.debug = wg.Output()
 
-        self.plot = k3d.Plot(grid=(vxmin, vymin, -0.5, vxmax, vymax, +0.5), mode="callback", menu_visibility=False)
+        k3kwargs: dict[str, Any] = dict(
+            grid=(vxmin, vymin, -0.5, vxmax, vymax, +0.5),
+            mode="callback",
+            menu_visibility=False,
+            camera_auto_fit=False,
+            camera=(xmid, ymid, 2, xmid, ymid, 0, 0, 1, 0),
+        )
+        if k3plot:
+            k3kwargs.update(k3plot)
+
+        self.plot = k3d.Plot(**k3kwargs)
         self.fields = {}
         self.init_aims()
         super().__init__([wg.HBox([self.plot, self.layers]), self.statusbar], **kwargs)
@@ -79,6 +92,9 @@ class K3DView(wg.VBox):
 
     def vectors(self, name, **kwargs):
         self.add(k3d.vectors(name=name, **kwargs))
+
+    def mesh(self, name, **kwargs):
+        self.add(k3d.mesh(name=name, click_callback=self.onclick, **kwargs))
 
     def onselect(self, data):
         selected = self.layers.value
